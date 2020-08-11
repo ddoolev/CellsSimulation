@@ -2,22 +2,24 @@ import numpy as np
 import math
 import Constants as C
 import Cell
-import enum
+import random
 
 
-class RoundCell(Cell.Cell):
+class DefaultCell(Cell.Cell):
     #growth_time_line = np.array([])
     
-    def __init__(self, center, r = 100, growthRate = 1, _r_split = 200):
+    def __init__(self, center, r = 100, growthRate = 1, r_split = 200):
         self._center = center
         self._r = r
         self.calculateBoundries()
-        self._r_split = _r_split
+        self._r_split = r_split
 
-        Cell.Cell.__init__(self, 
-                      Cell.CreateType.BOUNDARIES, 
-                      self._boundries,
-                      growthRate)
+        Cell.Cell.__init__(
+            self, 
+            Cell.CreateType.BOUNDARIES, 
+            self._boundries,
+            growthRate
+        )
 
     def calculateBoundries(self):
         # initialization
@@ -34,7 +36,7 @@ class RoundCell(Cell.Cell):
         current_angle = angle
         for i in range(num_of_points):
             [x,y] = self.Polar2Cartesian(r,current_angle)
-            boundries = np.concatenate((boundries,[[x],[y]]))
+            boundries = np.concatenate((boundries,[[x],[y]]),1)
             current_angle += angle
 
         self._boundries = boundries
@@ -55,11 +57,11 @@ class RoundCell(Cell.Cell):
             split_angle = random.uniform(0, 180)
         if (growth_rate == math.inf):
             growth_rate = self.growth_rate
-        new_r = r/2
-        new_center1 = np.add(center, Polar2Cartesian(new_r, split_angle))
-        new_center2 = np.subtract(center, Polar2Cartesian(new_r, split_angle))
-        cell1 = RoundCell1(new_center1, new_r, growth_rate)
-        cell2 = RoundCell1(new_center2, new_r, growth_rate)
+        new_r = self._r/2
+        new_center1 = np.add(self._center, self.Polar2Cartesian(new_r, split_angle))
+        new_center2 = np.subtract(self._center, self.Polar2Cartesian(new_r, split_angle))
+        cell1 = DefaultCell(new_center1, new_r, growth_rate, self._r_split)
+        cell2 = DefaultCell(new_center2, new_r, growth_rate, self._r_split)
         return [cell1, cell2]
 
     def setSplitSize(self, _r_split):
@@ -73,7 +75,7 @@ class RoundCell(Cell.Cell):
     def updateCell(self):
         return_statment = {}
         if (self._shouldGrow()):
-            self._grow
+            self._grow()
             if (self._shouldSplit()):
                 return self._updateSplit()
             else:
@@ -81,8 +83,8 @@ class RoundCell(Cell.Cell):
 
 
     def _updateSplit(self):
-        new_cells = self._split
-        state = self.State.FINISHED_SPLITING
+        new_cells = self._split()
+        state = Cell.State.FINISHED_SPLITING
         general_status = {"state":state, "new_cells":new_cells}
         return general_status
 

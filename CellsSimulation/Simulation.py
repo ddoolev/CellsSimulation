@@ -6,7 +6,6 @@ import Cell
 
 
 class Simulation:
-    TIME_STEP = 1
 
     def __init__(self, size = 1000, cells = np.array([]), time = 2):
         self.size = size
@@ -17,15 +16,14 @@ class Simulation:
         self.addCells([cell])
 
     def addCells(self, cells):
-        self.cells = np.append(self.cells, cells)
+        self.cells = np.concatenate((self.cells, cells))
             
-    def removeCell(self, cell_remove):
-        cell_index = np.where(self.cells == cell_remove)
-        if (cell_index.size != 0):
-            cells = np.delete(cells, cell_index)
+    def removeCell(self, cell_2_remove):
+        cell_index = np.where(self.cells == cell_2_remove)
+        if (len(cell_index) != 0):
+            self.cells = np.delete(self.cells, cell_index[0])
             return True
-        else:
-            return False
+        return False
 
     def simulationStart(self):
         # initial data  
@@ -41,6 +39,7 @@ class Simulation:
 
     def simulationInit(self):
         self.__boundries = [plt.plot([], [])[0] for _ in range(len(self.cells))]
+        self.getBoundries()
         return self.__boundries
 
     def simulationMainLoop(self, i):
@@ -62,5 +61,5 @@ class Simulation:
     def getBoundries(self):
         self.__boundries = [plt.plot([], [])[0] for _ in range(len(self.cells))]
         for i, cell in enumerate(self.cells, start=0):
-            cellBoundries = cell.getBoundries()
-            self.__boundries[i].set_data(cellBoundries[0], cellBoundries[1])
+            cell_boundries = cell.getBoundries()
+            self.__boundries[i].set_data(cell_boundries[0], cell_boundries[1])

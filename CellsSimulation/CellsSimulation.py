@@ -1,8 +1,9 @@
 import Simulation as sim
-from cell_creator import CircleCell as CCell
+from cell_creator.DefaultCell import DefaultCell as DCell
 
 simulation = sim.Simulation()
-simulation.addCell(CCell.RoundCell(center = [0,0]))
+round_cell = DCell(center = [0,0],r = 50, r_split = 100)
+simulation.addCell(round_cell)
 simulation.simulationStart()
 
 

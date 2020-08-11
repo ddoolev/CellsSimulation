@@ -17,7 +17,7 @@ class State(enum.Enum):
 
 class Cell:
 
-	removed = False
+	toRemoved = False
 	general_status = {}
 	
 	def __init__(self, 
@@ -34,7 +34,7 @@ class Cell:
 		return self._boundries
 
 	def remove(self):
-		self.removed = True
+		self.toRemoved = True
 
 	def _grow(self):
 		pass
