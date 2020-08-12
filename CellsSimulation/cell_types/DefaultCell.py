@@ -6,7 +6,6 @@ import random
 
 
 class DefaultCell(Cell.Cell):
-    #growth_time_line = np.array([])
     
     def __init__(self, center, r = 100, growthRate = 1, r_split = 200):
         self._center = center

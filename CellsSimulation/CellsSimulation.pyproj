@@ -11,7 +11,7 @@
     <OutputPath>.</OutputPath>
     <Name>CellsSimulation</Name>
     <RootNamespace>CellsSimulation</RootNamespace>
-    <InterpreterId>Global|PythonCore|3.8-32</InterpreterId>
+    <InterpreterId>Global|PythonCore|3.8</InterpreterId>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -24,7 +24,7 @@
   <ItemGroup>
     <Compile Include="Cell.py" />
     <Compile Include="CellsSimulation.py" />
-    <Compile Include="cell_creator\DefaultCell.py">
+    <Compile Include="cell_types\DefaultCell.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="dummy_navier_stokes\module1.py">
@@ -37,10 +37,11 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="dummy_navier_stokes\" />
-    <Folder Include="cell_creator\" />
+    <Folder Include="cell_types\" />
+    <Folder Include="on_off_timeline\" />
   </ItemGroup>
   <ItemGroup>
-    <InterpreterReference Include="Global|PythonCore|3.8-32" />
+    <InterpreterReference Include="Global|PythonCore|3.8" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

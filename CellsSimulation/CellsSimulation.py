@@ -1,5 +1,5 @@
 import Simulation as sim
-from cell_creator.DefaultCell import DefaultCell as DCell
+from cell_types.DefaultCell import DefaultCell as DCell
 
 simulation = sim.Simulation()
 round_cell = DCell(center = [0,0],r = 50, r_split = 100)
