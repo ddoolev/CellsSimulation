@@ -33,6 +33,9 @@
     <Compile Include="Constants.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="NavierStokesEquations.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Simulation.py" />
   </ItemGroup>
   <ItemGroup>
