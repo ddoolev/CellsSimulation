@@ -1,10 +1,17 @@
+import numpy as np
+import scipy 
 
-class Laplace:
+class LaplaceOperator:
 
-    def __laplacianOperation(self, matrix):
-        pass
+    def __init__(self, data_matrix, delta_x, delta_y):
+        self.__operators_matrix_diagonals = \
+            __createLaplacOperatorsMatrix(self, data_matrix, delta_x, delta_y)
+
+    def laplacianOperation(self, data_matrix):
+        return self.__operators_matrix_diagonals @ data_matrix
 
     # create Laplac operator's matrix, to calculate the laplacian for every point faster
+    @classmethod
     def __createLaplacOperatorsMatrix(self, data_matrix, delta_x, delta_y):
         num_of_points = len(data_matrix)*len(data_matrix[0])
         operators_matrix_diagonals = [[],[],[],[],[]]
@@ -24,6 +31,7 @@ class Laplace:
         operators_matrix_diagonals = \
             np.concatenate((operators_matrix_diagonals, boundry_values_block), 1)
 
+    @classmethod
     def __createBoundryValueBlock(self):
         block = [[],[],[],[],[]]
         boundary_vector = [[0],[0],[0],[0],[0]]
@@ -31,6 +39,7 @@ class Laplace:
             block = np.concatenate((block, boundary_vector), 1)
         return block
 
+    @classmethod
     def __createLaplacOperatorsMatrixVector(self, delta_x, delta_y):
         # create the coeficients. 
         # P=plus, M=minus
@@ -44,6 +53,7 @@ class Laplace:
 
         return coe_vector
 
+    @classmethod
     def __createLaplacOperatorsMatrixBlock(self, delta_x, deltay):
         block = [[],[],[],[],[]]
         # boundary value

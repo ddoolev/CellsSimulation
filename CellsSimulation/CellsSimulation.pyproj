@@ -33,7 +33,7 @@
     <Compile Include="Constants.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Laplace.py">
+    <Compile Include="LaplaceOperator.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="NavierStokesEquations.py">
