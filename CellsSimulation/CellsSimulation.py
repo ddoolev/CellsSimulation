@@ -9,12 +9,12 @@ from LaplaceOperator import LaplaceOperator
 #simulation.addCell(round_cell)
 #simulation.simulationStart()
 
-data_array = np.array([[1,2,3,4],
-                       [5,6,7,8],
-                       [9,10,11,12],
-                       [13,14,15,16]])
 
-delta_vector = np.array([1,1,1,1])
+array_size = 1000
+data_array = np.random.randint(10, size=(array_size, array_size))
+#print(data_array)
+
+delta_vector = np.full((array_size-1), 1)
 
 laplas = LaplaceOperator(delta_vector, delta_vector)
 results = laplas.laplacianOperation(data_array)

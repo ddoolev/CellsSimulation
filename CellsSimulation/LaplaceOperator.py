@@ -4,12 +4,12 @@ import scipy
 class LaplaceOperator:
 
     def __init__(self, delta_x, delta_y):
-        self.__operators_matrix_diagonals = \
+        self.__operators_matrix = \
             self.__createLaplacOperatorsMatrix(delta_x, delta_y)
 
     def laplacianOperation(self, data_matrix):
-        data_matrix = data_matrix.flatten
-        return self.__operators_matrix_diagonals @ data_matrix
+        results = self.__operators_matrix @ (data_matrix.flatten())
+        return np.reshape(results, (len(data_matrix), len(data_matrix[0])))
 
     # create Laplac operator's matrix, to calculate the laplacian for every point faster
     
@@ -33,8 +33,13 @@ class LaplaceOperator:
 
         operators_matrix_diagonals = \
             np.concatenate((operators_matrix_diagonals, boundry_values_block), 1)
+        offsets = np.array([grid_length_x, 1, 0, -1, -grid_length_x])
 
-        return operators_matrix_diagonals
+        operators_matrix = scipy.sparse.dia_matrix\
+            ((operators_matrix_diagonals, offsets), shape=(grid_length_x*grid_length_y, grid_length_x*grid_length_y)).transpose()
+
+        #print(operators_matrix.toarray())
+        return operators_matrix
 
 
     def __createBoundryValueBlock(self, grid_length_x):
@@ -54,7 +59,7 @@ class LaplaceOperator:
 
         coe_i_jM1 = 2 / (delta_y[y_index-1] * (delta_y[y_index] + delta_y[y_index-1]))
         coe_iM1_j = 2 / (delta_x[x_index-1] * (delta_x[x_index] + delta_x[x_index-1]))
-        coe_i_j = 2 / (delta_x[x_index] * delta_x[x_index-1]) + 2 / (delta_y[y_index] * delta_y[y_index-1])
+        coe_i_j = -(2 / (delta_x[x_index] * delta_x[x_index-1]) + 2 / (delta_y[y_index] * delta_y[y_index-1]))
         coe_iP1_j = 2 / (delta_x[x_index] * (delta_x[x_index] + delta_x[x_index-1]))
         coe_i_jP1 = 2 / (delta_y[y_index] * (delta_y[y_index] + delta_y[y_index-1]))
 
