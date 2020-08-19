@@ -1,6 +1,6 @@
 
 
-RESOLUTION = 10 # The closest any 2 points can be before merging. measured in Micrometre
-TIME_STEP = 1
-
+RESOLUTION = 10 # The distance between 2 coordinates on the greed
+                # The higher it is, the more accurate the simulation, and the longer it will take
+Re =  1 # Reynolds number
 
