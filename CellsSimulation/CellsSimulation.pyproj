@@ -24,10 +24,7 @@
   <ItemGroup>
     <Compile Include="Cell.py" />
     <Compile Include="CellsSimulation.py" />
-    <Compile Include="cell_types\DefaultCell.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="dummy_navier_stokes\module1.py">
+    <Compile Include="cell_creator\DefaultCell.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Constants.py">
@@ -42,9 +39,7 @@
     <Compile Include="Simulation.py" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="dummy_navier_stokes\" />
-    <Folder Include="cell_types\" />
-    <Folder Include="on_off_timeline\" />
+    <Folder Include="cell_creator\" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.8" />
