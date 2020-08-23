@@ -1,5 +1,6 @@
 import numpy as np
-import matplotlib.pylab as plt
+import matplotlib.pylab as pylab
+import matplotlib.pyplot as pyplot
 from matplotlib import animation
 import Constants as C
 import Cell
@@ -18,8 +19,8 @@ class Simulation:
     def addCells(self, cells):
         self.cells = np.concatenate((self.cells, cells))
             
-    def removeCell(self, cell_2_remove):
-        cell_index = np.where(self.cells == cell_2_remove)
+    def removeCell(self, cell_to_remove):
+        cell_index = np.where(self.cells == cell_to_remove)
         if (len(cell_index) != 0):
             self.cells = np.delete(self.cells, cell_index[0])
             return True
@@ -27,39 +28,31 @@ class Simulation:
 
     def simulationStart(self):
         # initial data  
-        self.fig = plt.figure()
-        self.axes = plt.axes(xlim=[-self.size,self.size], ylim=[-self.size,self.size])
+        self.fig = pylab.figure()
+        self.axes = pylab.axes(xlim=[-self.size,self.size], ylim=[-self.size,self.size])
         self.axes.set_aspect('equal')
 
-        ani = animation.FuncAnimation(self.fig, self.simulationMainLoop, 
-                                      init_func=self.simulationInit, 
-                                      frames=self.time, interval=20,
-                                      blit=True)
-        plt.show()
+        while(True):
+            pyplot.cla()
+            for cell in self.cells:
+                general_status = cell.updateCell()
+                if (general_status["state"] == Cell.State.FINISHED_SPLITING):
+                    self.removeCell(cell)
+                    self.addCells(general_status["new_cells"])
 
-    def simulationInit(self):
-        self.__boundries = [plt.plot([], [])[0] for _ in range(len(self.cells))]
-        self.getBoundries()
-        return self.__boundries
+            self.calculateBoundries()
+            self.getBoundries()
+            for cell_boundry in self.__boundries:
+                self.axes.add_line(cell_boundry)
+            pyplot.pause(0.0001)
 
-    def simulationMainLoop(self, i):
-        for cell in self.cells:
-            general_status = cell.updateCell()
-            if (general_status["state"] == Cell.State.FINISHED_SPLITING):
-                self.removeCell(cell)
-                self.addCells(general_status["new_cells"])
-
-        self.calculateBoundries()
-        self.getBoundries()
-        return self.__boundries
-        
 
     def calculateBoundries(self):
         for cell in self.cells:
             cell.calculateBoundries()
 
     def getBoundries(self):
-        self.__boundries = [plt.plot([], [])[0] for _ in range(len(self.cells))]
+        self.__boundries = [pylab.plot([], [])[0] for _ in range(len(self.cells))]
         for i, cell in enumerate(self.cells, start=0):
             cell_boundries = cell.getBoundries()
             self.__boundries[i].set_data(cell_boundries[0], cell_boundries[1])
