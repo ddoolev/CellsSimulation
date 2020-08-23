@@ -27,9 +27,6 @@
     <Compile Include="cell_creator\DefaultCell.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="dummy_navier_stokes\module1.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Constants.py">
       <SubType>Code</SubType>
     </Compile>
@@ -42,7 +39,6 @@
     <Compile Include="Simulation.py" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="dummy_navier_stokes\" />
     <Folder Include="cell_creator\" />
   </ItemGroup>
   <ItemGroup>
