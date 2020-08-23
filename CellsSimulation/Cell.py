@@ -23,11 +23,13 @@ class Cell:
 	def __init__(self, 
 				cell_create_type = 0, 
 				points = [],
-				growthRate = 1):
+				growth_rate = 1):
 
-		self.growth_rate = growthRate
+		self._growth_rate = growth_rate # how much to grow each time step
 		if (cell_create_type == CreateType.BOUNDARIES):
 			self._boundries = points
+		state = State.GROWING
+		self._general_status = {"state":state}
 	
 	def getBoundries(self):
 		#print(self.boundries)

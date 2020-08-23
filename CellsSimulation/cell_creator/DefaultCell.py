@@ -7,7 +7,7 @@ import random
 
 class DefaultCell(Cell.Cell):
     
-    def __init__(self, center, r = 100, growthRate = 1, r_split = 200):
+    def __init__(self, center, r = 100, growth_rate = 1, r_split = 200):
         self._center = center
         self._r = r
         self.calculateBoundries()
@@ -17,7 +17,7 @@ class DefaultCell(Cell.Cell):
             self, 
             Cell.CreateType.BOUNDARIES, 
             self._boundries,
-            growthRate
+            growth_rate
         )
 
     def calculateBoundries(self):
@@ -43,7 +43,7 @@ class DefaultCell(Cell.Cell):
     ###################################### Growth functions
 
     def _grow(self):
-        self._r += self.growth_rate
+        self._r += self._growth_rate
 
     def _shouldGrow(self):
         return True
@@ -55,7 +55,7 @@ class DefaultCell(Cell.Cell):
         if (split_angle == -1):
             split_angle = random.uniform(0, 180)
         if (growth_rate == math.inf):
-            growth_rate = self.growth_rate
+            growth_rate = self._growth_rate
         new_r = self._r/2
         new_center1 = np.add(self._center, self.Polar2Cartesian(new_r, split_angle))
         new_center2 = np.subtract(self._center, self.Polar2Cartesian(new_r, split_angle))
@@ -71,26 +71,30 @@ class DefaultCell(Cell.Cell):
 
     ###################################### Update functions
 
-    def updateCell(self):
-        return_statment = {}
-        if (self._shouldGrow()):
-            self._grow()
-            if (self._shouldSplit()):
-                return self._updateSplit()
-            else:
-                return self._updateGrow()
+    def update(self):
+        while(True):
+            yield C.ENV.timeout(C.TIME_STEP)
+            if (self._shouldGrow()):
+                self._grow()
+                if (self._shouldSplit()):
+                    self._updateSplit()
+                else:
+                    self._updateGrow()
 
 
     def _updateSplit(self):
         new_cells = self._split()
+        for cell in new_cells:
+            C.ENV.process(cell.update())
         state = Cell.State.FINISHED_SPLITING
-        general_status = {"state":state, "new_cells":new_cells}
-        return general_status
+        self._general_status = {"state":state, "new_cells":new_cells}
 
     def _updateGrow(self):
         state = Cell.State.GROWING
-        general_status = {"state":state}
-        return general_status
+        self._general_status = {"state":state}
+
+    def getStatus(self):
+        return self._general_status
 
     ###################################### Other functions
 

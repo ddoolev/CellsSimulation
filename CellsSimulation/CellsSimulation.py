@@ -5,7 +5,7 @@ from scipy.sparse import spdiags
 from LaplaceOperator import LaplaceOperator
 
 simulation = sim.Simulation()
-round_cell = DCell(center = [0,0],r = 50, r_split = 100)
+round_cell = DCell(center = [0,0],r = 10, r_split = 20)
 simulation.addCell(round_cell)
 simulation.simulationStart()
 
