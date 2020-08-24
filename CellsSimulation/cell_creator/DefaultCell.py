@@ -7,12 +7,12 @@ import random
 
 class DefaultCell(Cell.Cell):
     
-    def __init__(self, center, r = 100, growth_rate = 1, r_split = 200):
+    def __init__(self, center, r = 10, growth_rate = 1, r_split = 20):
         self._center = center
         self._r = r
         self.calculateBoundries()
         self._r_split = r_split
-
+            
         Cell.Cell.__init__(
             self, 
             Cell.CreateType.BOUNDARIES, 
