@@ -33,10 +33,13 @@
     <Compile Include="Constants.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="LaplaceOperator.py">
+    <Compile Include="navier_stokes_equations\LaplaceOperator.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="NavierStokesEquations.py">
+    <Compile Include="navier_stokes_equations\MathOperations.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="navier_stokes_equations\NavierStokesEquations.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Simulation.py" />
@@ -44,6 +47,7 @@
   <ItemGroup>
     <Folder Include="dummy_navier_stokes\" />
     <Folder Include="cell_creator\" />
+    <Folder Include="navier_stokes_equations\" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.8" />
