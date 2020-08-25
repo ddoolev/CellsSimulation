@@ -34,11 +34,10 @@ class Simulation:
             C.ENV.process(cell.update())
         C.ENV.run(until=self.time)
 
-
-
     def mainLoop(self):
         self.axes = pylab.axes(xlim=[-self.size,self.size], ylim=[-self.size,self.size])
         self.axes.set_aspect('equal')
+        # make the main loop run after all the cells grow
         yield C.ENV.timeout(C.TIME_STEP/1000)
         while(True):
             pyplot.cla()
