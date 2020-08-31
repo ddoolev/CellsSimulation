@@ -3,45 +3,44 @@ from sympy import *
 from sympy.geometry import *
 import matplotlib.pylab as plt
 
+
 class CreateType(enum.Enum):
-	BOUNDARIES = 0
-	#SOURCE
-	
+    BOUNDARIES = 0
+# SOURCE
+
+
 class State(enum.Enum):
-	STATIC = 0
-	GROWING = 1
-	SPLITTING = 2
-	FINISHED_SPLITING = 3
-	DEAD = 4
-	REMOVED = 5
+    STATIC = 0
+    GROWING = 1
+    SPLITTING = 2
+    FINISHED_SPLITING = 3
+    DEAD = 4
+    REMOVED = 5
+
 
 class Cell:
+    toRemoved = False
+    general_status = {}
 
-	toRemoved = False
-	general_status = {}
-	
-	def __init__(self, 
-				cell_create_type = 0, 
-				points = [],
-				growth_rate = 1):
+    def __init__(self,
+                 cell_create_type=0,
+                 points=[],
+                 growth_rate=1):
 
-		self._growth_rate = growth_rate # how much to grow each time step
-		if (cell_create_type == CreateType.BOUNDARIES):
-			self._boundries = points
-		state = State.GROWING
-		self._general_status = {"state":state}
-	
-	def getBoundries(self):
-		#print(self.boundries)
-		return self._boundries
+        self._growth_rate = growth_rate  # how much to grow each time step
+        if cell_create_type == CreateType.BOUNDARIES:
+            self._boundaries = points
+        state = State.GROWING
+        self._general_status = {"state": state}
 
-	def remove(self):
-		self.toRemoved = True
+    def getBoundaries(self):
+        return self._boundaries
 
-	def _grow(self):
-		pass
+    def remove(self):
+        self.toRemoved = True
 
-	def updateCell(self):
-		pass
+    def _grow(self):
+        pass
 
-
+    def updateCell(self):
+        pass

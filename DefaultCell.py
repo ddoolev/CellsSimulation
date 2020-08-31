@@ -11,21 +11,21 @@ class DefaultCell(Cell.Cell):
     def __init__(self, center, r = 100, growthRate = 1, r_split = 200):
         self._center = center
         self._r = r
-        self.calculateBoundries()
+        self.calculateBoundaries()
         self._r_split = r_split
 
         Cell.Cell.__init__(
             self, 
             Cell.CreateType.BOUNDARIES, 
-            self._boundries,
+            self._boundaies,
             growthRate
         )
 
-    def calculateBoundries(self):
+    def calculateBoundaies(self):
         # initialization
         r = self._r
         center = self._center
-        boundries = np.array([[r + self._center[0]],[center[1]]])
+        boundaies = np.array([[r + self._center[0]],[center[1]]])
 
         # min angle on the circle between 2 adjacent points
         angle = math.acos((2*math.pow(r,2) - math.pow(C.RESOLUTION,2))/(2*math.pow(r,2)))        
@@ -36,10 +36,10 @@ class DefaultCell(Cell.Cell):
         current_angle = angle
         for i in range(num_of_points):
             [x,y] = self.Polar2Cartesian(r,current_angle)
-            boundries = np.concatenate((boundries,[[x],[y]]),1)
+            boundaies = np.concatenate((boundaies,[[x],[y]]),1)
             current_angle += angle
 
-        self._boundries = boundries
+        self._boundaies = boundaies
 
     ###################################### Growth functions
 
