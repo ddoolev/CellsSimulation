@@ -53,7 +53,7 @@ class LaplaceOperator:
 
     @staticmethod
     def __create_laplace_operators_matrix_vector(delta_x, delta_y, i):
-        # create the coeficients. 
+        # create the coefficients.
         # P=plus, M=minus
         grid_length_x = len(delta_x) + 1
         x_index = i // grid_length_x

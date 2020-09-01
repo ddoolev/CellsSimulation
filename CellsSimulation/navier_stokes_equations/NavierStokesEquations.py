@@ -26,7 +26,7 @@ class NavierStokesEquations:
         v_i_j = self.__v_matrix[1:-1, 1:-1]
         v_iM1_j = self.__v_matrix[:-2, 1:-1]
 
-        # find matrixes with half indexes
+        # find matrices with half indexes
         u_iPh_j = (u_iP1_j + u_i_j) / 2
         u_i_jPh = (u_i_jP1 + u_i_j) / 2
         u_iMh_j = (u_iM1_j + u_i_j) / 2
@@ -73,3 +73,37 @@ class NavierStokesEquations:
                                          self.__delta_x)
 
         return non_linear_parameters_y
+
+    def __pressure_terms_x(self):
+        # P = plus
+        p_i_jP1 = self.__p_matrix[:, 1:]
+        p_i_j = self.__p_matrix[:, :-1]
+
+        results = p_i_jP1 - p_i_j
+        results = np.dot(results, self.__delta_y)
+        return results
+
+    def __pressure_terms_y(self):
+        # P = plus
+        p_iP1_j = self.__p_matrix[1:, :]
+        p_i_j = self.__p_matrix[:-1, :]
+
+        results = p_iP1_j - p_i_j
+        results = np.dot(results.transpose(), self.__delta_x).transpose()
+        return results
+
+    # def __divergence_x(self):
+    #     # M = minus
+    #     u_i_j = self.__u_matrix[1:, 1:]
+    #     u_iM1_j = self.__u_matrix[:-1, 1:]
+    #     v_i_j = self.__v_matrix[1:, 1:]
+    #     v_i_jM1 = self.__v_matrix[1:, :-1]
+    #     return (u_i_j - u_iM1_j + v_i_j - v_i_jM1) * self.__delta_y
+    #
+    # def __divergence_y(self):
+    #     # M = minus
+    #     u_i_j = self.__u_matrix[1:, 1:]
+    #     u_iM1_j = self.__u_matrix[:-1, 1:]
+    #     v_i_j = self.__v_matrix[1:, 1:]
+    #     v_i_jM1 = self.__v_matrix[1:, :-1]
+    #     return (u_i_j - u_iM1_j + v_i_j - v_i_jM1) * self.__delta_x
