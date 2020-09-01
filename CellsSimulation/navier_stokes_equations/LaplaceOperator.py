@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+import numexpr
 
 
 class LaplaceOperator:
@@ -20,7 +21,7 @@ class LaplaceOperator:
         num_of_points_in_matrix = grid_length_x * grid_length_y
         operators_matrix_diagonals = [[], [], [], [], []]
 
-        boundary_values_block = self.__createBoundaryValueBlock(grid_length_x)
+        boundary_values_block = self.__create_boundary_value_block(grid_length_x)
 
         operators_matrix_diagonals = \
             np.concatenate((operators_matrix_diagonals, boundary_values_block), 1)
@@ -77,8 +78,8 @@ class LaplaceOperator:
 
         # Create a block in the matrix
         for j in range(i + 1, i + grid_length_x - 1):
-            coeficient_vector = self.__create_laplace_operators_matrix_vector(delta_x, delta_y, j)
-            block = np.concatenate((block, coeficient_vector), 1)
+            coefficient_vector = self.__create_laplace_operators_matrix_vector(delta_x, delta_y, j)
+            block = np.concatenate((block, coefficient_vector), 1)
 
         # boundary value
         block = np.concatenate((block, boundary_vector), 1)
