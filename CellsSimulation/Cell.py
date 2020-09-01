@@ -1,7 +1,6 @@
 import enum
 from sympy import *
 from sympy.geometry import *
-import matplotlib.pylab as plt
 
 
 class CreateType(enum.Enum):
@@ -33,7 +32,7 @@ class Cell:
         state = State.GROWING
         self._general_status = {"state": state}
 
-    def getBoundaries(self):
+    def get_boundaries(self):
         return self._boundaries
 
     def remove(self):
@@ -42,5 +41,5 @@ class Cell:
     def _grow(self):
         pass
 
-    def updateCell(self):
+    def update_cell(self):
         pass

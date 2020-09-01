@@ -4,7 +4,7 @@ import numpy as np
 class MathOperations:
 
     @staticmethod
-    def gradientX(p_matrix, delta_x):
+    def gradient_x(p_matrix, delta_x):
         p_matrix_no_first_col = p_matrix[:, 1:]
         p_matrix_no_last_col = p_matrix[:, :-1]
 
@@ -13,7 +13,7 @@ class MathOperations:
         return results
 
     @staticmethod
-    def gradientY(p_matrix, delta_y):
+    def gradient_y(p_matrix, delta_y):
         p_matrix_no_first_col = p_matrix[1:, :]
         p_matrix_no_last_col = p_matrix[:-1, :]
 

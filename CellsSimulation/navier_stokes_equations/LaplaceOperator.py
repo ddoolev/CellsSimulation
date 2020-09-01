@@ -6,15 +6,15 @@ class LaplaceOperator:
 
     def __init__(self, delta_x, delta_y):
         self.__operators_matrix = \
-            self.__createLaplaceOperatorsMatrix(delta_x, delta_y)
+            self.__create_laplace_operators_matrix(delta_x, delta_y)
 
-    def laplacianOperation(self, data_matrix):
+    def laplacian_operation(self, data_matrix):
         results = self.__operators_matrix @ (data_matrix.flatten())
         return np.reshape(results, (len(data_matrix), len(data_matrix[0])))
 
     # create Laplace operator's matrix, to calculate the laplacian for every point faster
 
-    def __createLaplaceOperatorsMatrix(self, delta_x, delta_y):
+    def __create_laplace_operators_matrix(self, delta_x, delta_y):
         grid_length_x = len(delta_x) + 1
         grid_length_y = len(delta_y) + 1
         num_of_points_in_matrix = grid_length_x * grid_length_y
@@ -27,7 +27,7 @@ class LaplaceOperator:
 
         # Iterate on the matrix blocks
         for i in range(grid_length_x, num_of_points_in_matrix - grid_length_x, grid_length_x):
-            block = self.__createLaplaceOperatorsMatrixBlock(delta_x, delta_y, i)
+            block = self.__create_laplace_operators_matrix_block(delta_x, delta_y, i)
             operators_matrix_diagonals = \
                 np.concatenate((operators_matrix_diagonals, block), 1)
 
@@ -43,7 +43,7 @@ class LaplaceOperator:
         return operators_matrix
 
     @staticmethod
-    def __createboundaryValueBlock(grid_length_x):
+    def __create_boundary_value_block(grid_length_x):
         block = [[], [], [], [], []]
         boundary_vector = [[0], [0], [0], [0], [0]]
         for i in range(grid_length_x):
@@ -51,7 +51,7 @@ class LaplaceOperator:
         return block
 
     @staticmethod
-    def __createLaplaceOperatorsMatrixVector(delta_x, delta_y, i):
+    def __create_laplace_operators_matrix_vector(delta_x, delta_y, i):
         # create the coeficients. 
         # P=plus, M=minus
         grid_length_x = len(delta_x) + 1
@@ -68,7 +68,7 @@ class LaplaceOperator:
 
         return coe_vector
 
-    def __createLaplaceOperatorsMatrixBlock(self, delta_x, delta_y, i):
+    def __create_laplace_operators_matrix_block(self, delta_x, delta_y, i):
         block = [[], [], [], [], []]
         boundary_vector = [[0], [0], [0], [0], [0]]
         grid_length_x = len(delta_x) + 1
@@ -77,7 +77,7 @@ class LaplaceOperator:
 
         # Create a block in the matrix
         for j in range(i + 1, i + grid_length_x - 1):
-            coeficient_vector = self.__createLaplaceOperatorsMatrixVector(delta_x, delta_y, j)
+            coeficient_vector = self.__create_laplace_operators_matrix_vector(delta_x, delta_y, j)
             block = np.concatenate((block, coeficient_vector), 1)
 
         # boundary value

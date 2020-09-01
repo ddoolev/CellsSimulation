@@ -10,7 +10,7 @@ class DefaultCell(Cell.Cell):
     def __init__(self, center, r=10.0, growth_rate=1, r_split=20):
         self._center = center
         self._r = r
-        self.calculateBoundaries()
+        self.calculate_boundaries()
         self._r_split = r_split
         self._boundaries = np.array([])
 
@@ -21,7 +21,7 @@ class DefaultCell(Cell.Cell):
             growth_rate
         )
 
-    def calculateBoundaries(self):
+    def calculate_boundaries(self):
         # initialization
         r = self._r
         center = self._center
@@ -35,7 +35,7 @@ class DefaultCell(Cell.Cell):
         angle = 2 * math.pi / num_of_points
         current_angle = angle
         for i in range(num_of_points):
-            [x, y] = self.Polar2Cartesian(r, current_angle)
+            [x, y] = self.polar_to_cartesian(r, current_angle)
             boundaries = np.concatenate((boundaries, [[x], [y]]), 1)
             current_angle += angle
 
@@ -46,7 +46,7 @@ class DefaultCell(Cell.Cell):
     def _grow(self):
         self._r += self._growth_rate
 
-    def _shouldGrow(self):
+    def _should_grow(self):
         return True
 
     ###################################### Split functions
@@ -58,16 +58,16 @@ class DefaultCell(Cell.Cell):
         if growth_rate == math.inf:
             growth_rate = self._growth_rate
         new_r = self._r / 2
-        new_center1 = np.add(self._center, self.Polar2Cartesian(new_r, split_angle))
-        new_center2 = np.subtract(self._center, self.Polar2Cartesian(new_r, split_angle))
+        new_center1 = np.add(self._center, self.polar_to_cartesian(new_r, split_angle))
+        new_center2 = np.subtract(self._center, self.polar_to_cartesian(new_r, split_angle))
         cell1 = DefaultCell(new_center1, new_r, growth_rate, self._r_split)
         cell2 = DefaultCell(new_center2, new_r, growth_rate, self._r_split)
         return [cell1, cell2]
 
-    def setSplitSize(self, _r_split):
+    def set_split_size(self, _r_split):
         self._r_split = _r_split
 
-    def _shouldSplit(self):
+    def _should_split(self):
         return self._r == self._r_split
 
     ###################################### Update functions
@@ -75,30 +75,30 @@ class DefaultCell(Cell.Cell):
     def update(self):
         while True:
             yield C.ENV.timeout(C.TIME_STEP)
-            if self._shouldGrow():
+            if self._should_grow():
                 self._grow()
-                if self._shouldSplit():
-                    self._updateSplit()
+                if self._should_split():
+                    self._update_split()
                 else:
-                    self._updateGrow()
+                    self._update_grow()
 
-    def _updateSplit(self):
+    def _update_split(self):
         new_cells = self._split()
         for cell in new_cells:
             C.ENV.process(cell.update())
         state = Cell.State.FINISHED_SPLITING
         self._general_status = {"state": state, "new_cells": new_cells}
 
-    def _updateGrow(self):
+    def _update_grow(self):
         state = Cell.State.GROWING
         self._general_status = {"state": state}
 
-    def getStatus(self):
+    def get_status(self):
         return self._general_status
 
     ###################################### Other functions
 
-    def Polar2Cartesian(self, r, angle):
+    def polar_to_cartesian(self, r, angle):
         x = r * math.cos(angle) + self._center[0]
         y = r * math.sin(angle) + self._center[1]
         return [x, y]
