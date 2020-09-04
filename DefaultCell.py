@@ -84,7 +84,7 @@ class DefaultCell(Cell.Cell):
 
     def _updateSplit(self):
         new_cells = self._split()
-        state = Cell.State.FINISHED_SPLITING
+        state = Cell.State.FINISHED_SPLITTING
         general_status = {"state":state, "new_cells":new_cells}
         return general_status
 

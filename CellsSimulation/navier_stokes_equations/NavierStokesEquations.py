@@ -9,12 +9,12 @@ class NavierStokesEquations:
         self.__u_matrix = u_matrix
         self.__delta_x = delta_x
         self.__delta_y = delta_y
-        self.__laplacOperator = LaplaceOperator(delta_x, delta_y)
+        self.__laplace_operator = LaplaceOperator(delta_x, delta_y)
 
     # def getNextStep(self):
     def __non_linear_parameters_x(self):
         # P = plus  M = minus h = half
-        # find the matrixes without the unneeded columns and rows
+        # find the matrices without the unneeded columns and rows
         u_iP1_j = self.__u_matrix[2:, 1:-1]
         u_i_j = self.__u_matrix[1:-1, 1:-1]
         u_iM1_j = self.__u_matrix[:-2, 1:-1]

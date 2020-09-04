@@ -86,7 +86,7 @@ class DefaultCell(Cell.Cell):
         new_cells = self._split()
         for cell in new_cells:
             C.ENV.process(cell.update())
-        state = Cell.State.FINISHED_SPLITING
+        state = Cell.State.FINISHED_SPLITTING
         self._general_status = {"state": state, "new_cells": new_cells}
 
     def _update_grow(self):

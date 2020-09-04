@@ -1,6 +1,5 @@
 import enum
-from sympy import *
-from sympy.geometry import *
+import numpy as np
 
 
 class CreateType(enum.Enum):
@@ -12,7 +11,7 @@ class State(enum.Enum):
     STATIC = 0
     GROWING = 1
     SPLITTING = 2
-    FINISHED_SPLITING = 3
+    FINISHED_SPLITTING = 3
     DEAD = 4
     REMOVED = 5
 
@@ -23,7 +22,7 @@ class Cell:
 
     def __init__(self,
                  cell_create_type=0,
-                 points=[],
+                 points=np.array([]),
                  growth_rate=1):
 
         self._growth_rate = growth_rate  # how much to grow each time step
