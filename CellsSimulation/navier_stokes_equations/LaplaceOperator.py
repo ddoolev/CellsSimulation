@@ -1,20 +1,23 @@
 import numpy as np
-import scipy
-import numexpr
+import scipy.sparse as sparse
 
 
 class LaplaceOperator:
+    __lu_matrix: object
 
     def __init__(self, delta_x, delta_y):
         self.__operators_matrix = \
             self.__create_laplace_operators_matrix(delta_x, delta_y)
+        self.operators_matrix_lu_decomposition()
 
-    def laplacian_operation(self, data_matrix):
-        results = self.__operators_matrix @ (data_matrix.flatten())
-        return np.reshape(results, (len(data_matrix), len(data_matrix[0])))
+    def solve(self, solution_matrix):
+        results = self.__lu_matrix.solve(solution_matrix)
+        return np.reshape(results, (len(solution_matrix), len(solution_matrix[0])))
+
+    def operators_matrix_lu_decomposition(self):
+        self.__lu_matrix = sparse.sla.splu(self.__operators_matrix)
 
     # create Laplace operator's matrix, to calculate the laplacian for every point faster
-
     def __create_laplace_operators_matrix(self, delta_x, delta_y):
         grid_length_x = len(delta_x) + 1
         grid_length_y = len(delta_y) + 1
@@ -36,11 +39,10 @@ class LaplaceOperator:
             np.concatenate((operators_matrix_diagonals, boundary_values_block), 1)
         offsets = np.array([grid_length_x, 1, 0, -1, -grid_length_x])
 
-        operators_matrix = scipy.sparse.dia_matrix \
+        operators_matrix = sparse.dia_matrix \
             ((operators_matrix_diagonals, offsets),
              shape=(grid_length_x * grid_length_y, grid_length_x * grid_length_y)).transpose()
 
-        # print(operators_matrix.toarray())
         return operators_matrix
 
     @staticmethod
@@ -85,3 +87,9 @@ class LaplaceOperator:
         block = np.concatenate((block, boundary_vector), 1)
 
         return block
+
+    def multiply_operators_matrix(self, argument):
+        self.__operators_matrix = self.__operators_matrix.multiply(argument)
+
+    def add_to_operators_matrix(self, add_matrix):
+        self.__operators_matrix += add_matrix

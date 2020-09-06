@@ -1,5 +1,7 @@
 import numpy as np
 from LaplaceOperator import LaplaceOperator
+import Constants as C
+import scipy
 
 
 class NavierStokesEquations:
@@ -9,9 +11,13 @@ class NavierStokesEquations:
         self.__u_matrix = u_matrix
         self.__delta_x = delta_x
         self.__delta_y = delta_y
-        self.__laplace_operator = LaplaceOperator(delta_x, delta_y)
 
-    # def getNextStep(self):
+        self.__laplace_operator_velocity = LaplaceOperator(delta_x, delta_y)
+        self.__laplace_operator_velocity.multiply_operators_matrix(-1 / C.Re)
+        identity_matrix = scipy.sparse.dia_matrix \
+            (np.full([delta_x*delta_y], 1), shape=(delta_x * delta_y, delta_x * delta_y))
+        self.__laplace_operator_velocity = self.__laplace_operator_velocity.add_to_operators_matrix(identity_matrix)
+
     def __non_linear_parameters_x(self):
         # P = plus  M = minus h = half
         # find the matrices without the unneeded columns and rows
@@ -91,6 +97,12 @@ class NavierStokesEquations:
         results = p_iP1_j - p_i_j
         results = np.dot(results.transpose(), self.__delta_x).transpose()
         return results
+
+    def next_step(self):
+        right_side_u = self.__pressure_terms_x() + self.__non_linear_parameters_x() + self.__u_matrix
+        right_side_v = self.__pressure_terms_y() + self.__non_linear_parameters_y() + self.__v_matrix
+        predicted_u = self.__laplace_operator_velocity.solve(right_side_u)
+        predicted_v = self.__laplace_operator_velocity.solve(right_side_v)
 
     # def __divergence_x(self):
     #     # M = minus
