@@ -3,19 +3,22 @@ import scipy.sparse as sparse
 
 
 class LaplaceOperator:
-    __lu_matrix: object
+    __lu_operator: object
 
     def __init__(self, delta_x, delta_y):
         self.__operators_matrix = \
             self.__create_laplace_operators_matrix(delta_x, delta_y)
-        self.operators_matrix_lu_decomposition()
+        self.__lu_decomposition_updated = False
 
     def solve(self, solution_matrix):
-        results = self.__lu_matrix.solve(solution_matrix)
+        if not self.__lu_decomposition_updated:
+            self.__operators_matrix_lu_decomposition_update()
+        results = self.__lu_operator.solve(solution_matrix.flatten())
         return np.reshape(results, (len(solution_matrix), len(solution_matrix[0])))
 
-    def operators_matrix_lu_decomposition(self):
-        self.__lu_matrix = sparse.sla.splu(self.__operators_matrix)
+    def __operators_matrix_lu_decomposition_update(self):
+        self.__lu_operator = sparse.sla.splu(self.__operators_matrix)
+        self.__lu_decomposition_updated = True
 
     # create Laplace operator's matrix, to calculate the laplacian for every point faster
     def __create_laplace_operators_matrix(self, delta_x, delta_y):
@@ -90,6 +93,8 @@ class LaplaceOperator:
 
     def multiply_operators_matrix(self, argument):
         self.__operators_matrix = self.__operators_matrix.multiply(argument)
+        self.__lu_decomposition_updated = False
 
     def add_to_operators_matrix(self, add_matrix):
         self.__operators_matrix += add_matrix
+        self.__lu_decomposition_updated = False
