@@ -36,7 +36,7 @@ class DefaultCell(Cell.Cell):
         current_angle = angle
         for i in range(num_of_points):
             [x, y] = self.polar_to_cartesian(r, current_angle)
-            boundaries = np.concatenate((boundaries, [[x], [y]]), 1)
+            boundaries = np.concatenate((boundaries, [[x], [y]]), axis=1)
             current_angle += angle
 
         self._boundaries = boundaries

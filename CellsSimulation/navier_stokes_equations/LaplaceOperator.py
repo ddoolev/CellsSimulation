@@ -30,16 +30,16 @@ class LaplaceOperator:
         boundary_values_block = self.__create_boundary_value_block(grid_length_x)
 
         operators_matrix_diagonals = \
-            np.concatenate((operators_matrix_diagonals, boundary_values_block), 1)
+            np.concatenate((operators_matrix_diagonals, boundary_values_block), axis=1)
 
         # Iterate on the matrix blocks
         for i in range(grid_length_x, num_of_points_in_matrix - grid_length_x, grid_length_x):
             block = self.__create_laplace_operators_matrix_block(delta_x, delta_y, i)
             operators_matrix_diagonals = \
-                np.concatenate((operators_matrix_diagonals, block), 1)
+                np.concatenate((operators_matrix_diagonals, block), axis=1)
 
         operators_matrix_diagonals = \
-            np.concatenate((operators_matrix_diagonals, boundary_values_block), 1)
+            np.concatenate((operators_matrix_diagonals, boundary_values_block), axis=1)
         offsets = np.array([grid_length_x, 1, 0, -1, -grid_length_x])
 
         operators_matrix = sparse.dia_matrix \
@@ -53,7 +53,7 @@ class LaplaceOperator:
         block = [[], [], [], [], []]
         boundary_vector = [[0], [0], [0], [0], [0]]
         for i in range(grid_length_x):
-            block = np.concatenate((block, boundary_vector), 1)
+            block = np.concatenate((block, boundary_vector), axis=1)
         return block
 
     @staticmethod
@@ -79,15 +79,15 @@ class LaplaceOperator:
         boundary_vector = [[0], [0], [0], [0], [0]]
         grid_length_x = len(delta_x) + 1
         # boundary value
-        block = np.concatenate((block, boundary_vector), 1)
+        block = np.concatenate((block, boundary_vector), axis=1)
 
         # Create a block in the matrix
         for j in range(i + 1, i + grid_length_x - 1):
             coefficient_vector = self.__create_laplace_operators_matrix_vector(delta_x, delta_y, j)
-            block = np.concatenate((block, coefficient_vector), 1)
+            block = np.concatenate((block, coefficient_vector), axis=1)
 
         # boundary value
-        block = np.concatenate((block, boundary_vector), 1)
+        block = np.concatenate((block, boundary_vector), axis=1)
 
         return block
 
