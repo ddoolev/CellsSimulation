@@ -151,25 +151,27 @@ class NavierStokesEquations:
 
     ###################################### Boundaries
 
-    def __add_boundaries_left(self, matrix):
-        left_boundary = np.concatenate(([0], self.__boundaries.,[0]), axis=0)
+    def __add_boundaries_left(self, matrix, field):
+        left_boundary = np.concatenate(([0], self.__boundaries.get_left(field), [0]), axis=0)
         return np.concatenate((left_boundary.T, matrix), axis=1)
 
-    def __add_boundaries_right(self, matrix):
-        right_boundary = np.concatenate(([0], matrix[Boundaries.SIDE.RIGHT],[0]), axis=0)
+    def __add_boundaries_right(self, matrix, field):
+        right_boundary = np.concatenate(([0], self.__boundaries.get_right(field), [0]), axis=0)
         return np.concatenate((matrix, right_boundary.T), axis=1)
 
-    def __add_boundaries_top(self, matrix):
-        top_boundary = np.concatenate(([0], matrix[Boundaries.SIDE.TOP],[0]), axis=0)
+    def __add_boundaries_top(self, matrix, field):
+        top_boundary = np.concatenate(([0], self.__boundaries.get_top(field), [0]), axis=0)
         return np.concatenate((top_boundary, matrix), axis=0)
 
-    def __add_boundaries_bottom(self, matrix):
-        bottom_boundary = np.concatenate(([0], matrix[Boundaries.SIDE.BOTTOM],[0]), axis=0)
-        return np.concatenate((bottom_boundary.T, matrix), axis=1)
+    def __add_boundaries_bottom(self, matrix, field):
+        bottom_boundary = np.concatenate(([0], self.__boundaries.get_bottom(field), [0]), axis=0)
+        return np.concatenate((matrix, bottom_boundary), axis=0)
 
-    @staticmethod
-    def __add_boundaries_all(self, matrix):
-        matrix = np.concatenate((bottom_boundary.T, matrix), axis=1)
-        bottom_boundary = np.concatenate(([0], matrix[Boundaries.SIDE.BOTTOM], [0]), axis=0)
-        return np.concatenate((bottom_boundary.T, matrix), axis=1)
+    def __add_boundaries_all(self, matrix, field):
+        matrix = np.concatenate((self.__boundaries.get_left(field).T, matrix,
+                                 self.__boundaries.get_right(field).T), axis=1)
+        top_boundary = np.concatenate(([0], self.__boundaries.get_top(field), [0]), axis=0)
+        bottom_boundary = np.concatenate(([0], self.__boundaries.get_bottom(field), [0]), axis=0)
+        matrix = np.concatenate((top_boundary, matrix, bottom_boundary), axis=0)
+        return matrix
 
