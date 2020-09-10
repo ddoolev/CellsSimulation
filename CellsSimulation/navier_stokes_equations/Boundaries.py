@@ -4,9 +4,15 @@ import enum
 import warnings
 
 
-class BoundaryConditionsType(enum.Enum):
+class BOUNDARY_CONDITIONS_TYPE(enum.Enum):
     DIRICHLET = 0
-    NEUMANN = 1
+    NUEMANN = 1
+
+
+class FIELD(enum.Enum):
+    U = 0
+    V = 1
+    P = 2
 
 
 class WarningsStrings:
@@ -17,24 +23,19 @@ class Boundaries:
     __u: Dict[str:np.array]
     __v: Dict[str:np.array]
     __p: Dict[str:np.array]
-    __boundary_conditions_type: BoundaryConditionsType
+    __boundary_conditions_type: BOUNDARY_CONDITIONS_TYPE
 
-    def __init__(self, boundaries, boundary_conditions_type):
-        # The boundaries should look like this:
-        # boundaries dictionary: {"left":[], "right":[], "top":[], "bottom":[]}
+    def __init__(self, left, right, top, bottom, boundary_conditions_type=BOUNDARY_CONDITIONS_TYPE.NUEMANN):
         # Boundaries should not include the corners
-        self.__u = boundaries["u"]
-        self.__v = boundaries["v"]
+        self.__u = u
+        self.__v = v
         # decide the pressure boundaries type: Dirichlet or Neumann
         self.__boundary_conditions_type = boundary_conditions_type
 
-        if self.is_boundary_condition_type_dirichlet():
-            self.__p = boundaries["p"]
+        if self.boundary_conditions_type == BOUNDARY_CONDITIONS_TYPE.DIRICHLET:
+            self.__p = p
         else:
-            self.__p = {"left": [], "right": [], "top": [], "bottom": []}
-
-    def is_boundary_condition_type_dirichlet(self):
-        return self.__boundary_conditions_type == BoundaryConditionsType.DIRICHLET
+            self.__p = {SIDE.LEFT: [], SIDE.RIGHT: [], SIDE.BOTTOM: [], SIDE.TOP: []}
 
     @property
     def boundary_conditions_type(self):
@@ -44,132 +45,35 @@ class Boundaries:
     def boundary_conditions_type(self, boundary_conditions_type):
         self.__boundary_conditions_type = boundary_conditions_type
 
-    @property
-    def u(self):
-        return self.__u
+    def get_left(self, field):
+        return self.__u[side]
 
-    @u.setter
-    def u(self, u_boundary):
-        self.__u = u_boundary
+    def set_u(self, u_boundary, side=SIDE.ALL):
+        if side == SIDE.ALL:
+            self.__u = u_boundary
+        else:
+            self.__u[side] = u_boundary
 
-    @property
-    def u_left(self):
-        return self.__u["left"]
+    def get_v(self, side=SIDE.ALL):
+        if side == SIDE.ALL:
+            return self.__v
+        return self.__v[side]
 
-    @u_left.setter
-    def u_left(self, u_left_boundary):
-        self.__u["left"] = u_left_boundary
+    def set_v(self, v_boundary, side=SIDE.ALL):
+        if side == SIDE.ALL:
+            self.__v = v_boundary
+        else:
+            self.__v[side] = v_boundary
 
-    @property
-    def u_top(self):
-        return self.__u["top"]
-
-    @u_top.setter
-    def u_top(self, u_top_boundary):
-        self.__u["top"] = u_top_boundary
-
-    @property
-    def u_right(self):
-        return self.__u["right"]
-
-    @u_right.setter
-    def u_right(self, u_right_boundary):
-        self.__u["right"] = u_right_boundary
-
-    @property
-    def u_bottom(self):
-        return self.__u["bottom"]
-
-    @u_bottom.setter
-    def u_bottom(self, u_bottom_boundary):
-        self.__u["bottom"] = u_bottom_boundary
-
-    @property
-    def v(self):
-        return self.__v
-
-    @v.setter
-    def v(self, v_boundary):
-        self.__v = v_boundary
-
-    @property
-    def v_left(self):
-        return self.__v["left"]
-
-    @v_left.setter
-    def v_left(self, v_left_boundary):
-        self.__v["left"] = v_left_boundary
-
-    @property
-    def v_top(self):
-        return self.__v["top"]
-
-    @v_top.setter
-    def v_top(self, v_top_boundary):
-        self.__v["top"] = v_top_boundary
-
-    @property
-    def v_right(self):
-        return self.__v["right"]
-
-    @v_right.setter
-    def v_right(self, v_right_boundary):
-        self.__v["right"] = v_right_boundary
-
-    @property
-    def v_bottom(self):
-        return self.__v["bottom"]
-
-    @v_bottom.setter
-    def v_bottom(self, v_bottom_boundary):
-        self.__v["bottom"] = v_bottom_boundary
-
-    @property
-    def p(self):
-        if not self.is_boundary_condition_type_dirichlet():
+    def get_p(self, side=SIDE.ALL):
+        if self.boundary_conditions_type == BOUNDARY_CONDITIONS_TYPE.DIRICHLET:
             warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
-        return self.__p
+        if side == SIDE.ALL:
+            return self.__p
+        return self.__p[side]
 
-    @p.setter
-    def p(self, p_boundary):
-        self.__p = p_boundary
-
-    @property
-    def p_left(self):
-        if not self.is_boundary_condition_type_dirichlet():
-            warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
-        return self.__p["left"]
-
-    @p_left.setter
-    def p_left(self, p_left_boundary):
-        self.__p["left"] = p_left_boundary
-
-    @property
-    def p_top(self):
-        if not self.is_boundary_condition_type_dirichlet():
-            warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
-        return self.__p["top"]
-
-    @p_top.setter
-    def p_top(self, p_top_boundary):
-        self.__p["top"] = p_top_boundary
-
-    @property
-    def p_right(self):
-        if not self.is_boundary_condition_type_dirichlet():
-            warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
-        return self.__p["right"]
-
-    @p_right.setter
-    def p_right(self, p_right_boundary):
-        self.__p["right"] = p_right_boundary
-
-    @property
-    def p_bottom(self):
-        if not self.is_boundary_condition_type_dirichlet():
-            warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
-        return self.__p["bottom"]
-
-    @p_bottom.setter
-    def p_bottom(self, p_bottom_boundary):
-        self.__p["bottom"] = p_bottom_boundary
+    def set_p(self, p_boundary, side=SIDE.ALL):
+        if side == SIDE.ALL:
+            self.__p = p_boundary
+        else:
+            self.__p[side] = p_boundary

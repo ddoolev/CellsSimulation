@@ -1,9 +1,23 @@
-from typing import Dict
 import numpy as np
 from LaplaceOperator import LaplaceOperator
 import Constants as C
 import scipy
 from Boundaries import Boundaries
+import enum
+
+
+class ORIENTATION(enum.Enum):
+    LEFT = 0
+    RIGHT = 1
+    TOP = 2
+    BOTTOM = 3
+
+
+class FIELD(enum.Enum):
+    U = 0
+    V = 1
+    P = 2
+
 
 class NavierStokesEquations:
 
@@ -137,25 +151,25 @@ class NavierStokesEquations:
 
     ###################################### Boundaries
 
-    def __add_boundaries_left(self, matrix, uvp):
-        return np.concatenate((self.__boundaries["left"][uvp].T, matrix), axis=1)
+    def __add_boundaries_left(self, matrix):
+        left_boundary = np.concatenate(([0], self.__boundaries.,[0]), axis=0)
+        return np.concatenate((left_boundary.T, matrix), axis=1)
 
-    def __add_boundaries_right(self, matrix, uvp):
-        return np.concatenate((matrix, self.__boundaries["right"][uvp].T), axis=1)
+    def __add_boundaries_right(self, matrix):
+        right_boundary = np.concatenate(([0], matrix[Boundaries.SIDE.RIGHT],[0]), axis=0)
+        return np.concatenate((matrix, right_boundary.T), axis=1)
 
-    def __add_boundaries_top(self, matrix, uvp):
-        return np.concatenate((self.__boundaries["top"][uvp], matrix), axis=0)
+    def __add_boundaries_top(self, matrix):
+        top_boundary = np.concatenate(([0], matrix[Boundaries.SIDE.TOP],[0]), axis=0)
+        return np.concatenate((top_boundary, matrix), axis=0)
 
-    def __add_boundaries_bottom(self, matrix, uvp):
-        return np.concatenate((matrix, self.__boundaries["bottom"][uvp]), axis=0)
+    def __add_boundaries_bottom(self, matrix):
+        bottom_boundary = np.concatenate(([0], matrix[Boundaries.SIDE.BOTTOM],[0]), axis=0)
+        return np.concatenate((bottom_boundary.T, matrix), axis=1)
 
-    def __add_boundaries_full(self, matrix, uvp):
-        matrix = np.concatenate((self.__boundaries["top"][1:-1], matrix), axis=0)
-        matrix = np.concatenate((matrix, self.__boundaries["bottom"][1:-1]), axis=0)
-        matrix = np.concatenate((matrix, self.__boundaries["right"].T), axis=1)
-        matrix = np.concatenate((self.__boundaries["left"].T, matrix), axis=1)
-        return matrix
-
-    def __add_boundaries(self, side, xy):
-        switch(side):
+    @staticmethod
+    def __add_boundaries_all(self, matrix):
+        matrix = np.concatenate((bottom_boundary.T, matrix), axis=1)
+        bottom_boundary = np.concatenate(([0], matrix[Boundaries.SIDE.BOTTOM], [0]), axis=0)
+        return np.concatenate((bottom_boundary.T, matrix), axis=1)
 
