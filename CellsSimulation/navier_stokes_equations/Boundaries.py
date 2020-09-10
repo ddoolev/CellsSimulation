@@ -2,18 +2,12 @@ import numpy as np
 from typing import Dict
 import enum
 import warnings
+from NavierStokesEquations import Field
 
 
 class BoundaryConditionsType(enum.Enum):
     DIRICHLET = 0
     NUEMANN = 1
-
-
-class Field(enum.Enum):
-    U = 0
-    V = 1
-    P = 2
-    ALL = 3
 
 
 class WarningsStrings:
@@ -94,4 +88,3 @@ class Boundaries:
             self.__bottom = bottom_boundary
         else:
             self.__bottom[field] = bottom_boundary
-
