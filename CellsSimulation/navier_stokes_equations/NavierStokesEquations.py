@@ -192,13 +192,20 @@ class NavierStokesEquations:
         return np.concatenate((matrix, bottom_boundary), axis=0)
 
     def __add_boundaries_all(self, matrix, field):
-        left_boundary = np.array([self.__boundaries.get_left(field)]).T
-        right_boundary = np.array([self.__boundaries.get_right(field)]).T
-        matrix = np.concatenate((left_boundary, matrix, right_boundary), axis=1)
-        top_boundary = np.concatenate(([0], self.__boundaries.get_top(field), [0]), axis=0)
+        if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
+            left_boundary = np.array([matrix[0]]).T
+            right_boundary = np.array([matrix[-1]]).T
+            top_boundary = np.concatenate(([0], matrix[0].T, [0]), axis=0)
+            bottom_boundary = np.concatenate(([0], matrix[-1].T, [0]), axis=0)
+        else:
+            left_boundary = np.array([self.__boundaries.get_left(field)]).T
+            right_boundary = np.array([self.__boundaries.get_right(field)]).T
+            top_boundary = np.concatenate(([0], self.__boundaries.get_top(field), [0]), axis=0)
+            bottom_boundary = np.concatenate(([0], self.__boundaries.get_bottom(field), [0]), axis=0)
         top_boundary = np.array([top_boundary])
-        bottom_boundary = np.concatenate(([0], self.__boundaries.get_bottom(field), [0]), axis=0)
         bottom_boundary = np.array([bottom_boundary])
+
+        matrix = np.concatenate((left_boundary, matrix, right_boundary), axis=1)
         matrix = np.concatenate((top_boundary, matrix, bottom_boundary), axis=0)
         return matrix
 
