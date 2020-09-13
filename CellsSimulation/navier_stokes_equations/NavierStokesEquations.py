@@ -53,8 +53,7 @@ class NavierStokesEquations:
 
         # calculate p prime
         right_side_p_prime = -(self.__divergence_x(predicted_u, Field.U) +
-                               self.__divergence_y(predicted_v, Field.V)) / \
-                             self.__delta_t
+                               self.__divergence_y(predicted_v, Field.V)) / self.__delta_t
         p_prime = self.__laplace_operator_p_prime.solve(right_side_p_prime)
 
         # calculate the new fields
@@ -203,4 +202,11 @@ class NavierStokesEquations:
         bottom_boundary = np.concatenate(([0], self.__boundaries.get_bottom(field), [0]), axis=0)
         matrix = np.concatenate((top_boundary, matrix, bottom_boundary), axis=0)
         return matrix
+
+    def get_quiver(self, plt):
+        x = np.concatenate(([0], self.__delta_x)).cumsum()
+        y = np.concatenate(([0], self.__delta_y)).cumsum()
+        xx, yy = np.meshgrid(x, y)
+        plt.quiver(xx, yy, self.__u_matrix, self.__v_matrix)
+
 
