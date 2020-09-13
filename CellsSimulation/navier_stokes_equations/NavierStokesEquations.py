@@ -24,14 +24,14 @@ class NavierStokesEquations:
 
     __boundaries: Boundaries
 
-    def __init__(self, p_matrix, v_matrix, u_matrix, delta_x, delta_y, boundaries, delta_t = 0.001):
+    def __init__(self, p_matrix, v_matrix, u_matrix, delta_x, delta_y, boundaries):
         self.__p_matrix = p_matrix
         self.__v_matrix = v_matrix
         self.__u_matrix = u_matrix
         self.__delta_x = delta_x
         self.__delta_y = delta_y
         self.__boundaries = boundaries
-        self.__delta_t = delta_t
+        self.__delta_t = C.TIME_STEP
 
         self.__laplace_operator_p_prime = LaplaceOperator(delta_x, delta_y)
         self.__laplace_operator_velocity = LaplaceOperator(delta_x, delta_y)
