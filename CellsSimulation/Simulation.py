@@ -1,6 +1,6 @@
 import numpy as np
-import matplotlib.pylab as pylab
-import matplotlib.pyplot as pyplot
+import matplotlib.pylab as plb
+import matplotlib.pyplot as plt
 import Constants as C
 import Cell
 
@@ -11,9 +11,9 @@ class Simulation:
         self.size = size
         self.cells = cells
         self.time = time
-        self.fig = pylab.figure()
-        self.axes = pylab.axes(xlim=[-self.size, self.size], ylim=[-self.size, self.size])
-        self.__boundaries = [pylab.plot([], [])[0] for _ in range(len(self.cells))]
+        self.fig = plb.figure()
+        self.axes = plb.axes(xlim=[-self.size, self.size], ylim=[-self.size, self.size])
+        self.__boundaries = [plb.plot([], [])[0] for _ in range(len(self.cells))]
 
     def add_cell(self, cell):
         self.add_cells([cell])
@@ -29,7 +29,7 @@ class Simulation:
         return False
 
     def simulation_start(self):
-        # initial data  
+        # initial data
         C.ENV.process(self.main_loop())
         for cell in self.cells:
             C.ENV.process(cell.update())
@@ -40,7 +40,7 @@ class Simulation:
         # make the main loop run after all the cells grow
         yield C.ENV.timeout(C.TIME_STEP / 1000)
         while True:
-            pyplot.cla()
+            plt.cla()
             for cell in self.cells:
                 cell_status = cell.get_status()
                 if cell_status["state"] == Cell.State.FINISHED_SPLITTING:
@@ -51,7 +51,7 @@ class Simulation:
             for cell_boundary in boundaries:
                 self.axes.add_line(cell_boundary)
 
-            pyplot.pause(0.1)
+            plt.pause(0.1)
             yield C.ENV.timeout(C.TIME_STEP)
 
     def calculate_boundaries(self):
@@ -59,7 +59,7 @@ class Simulation:
             cell.calculate_boundaries()
 
     def get_boundaries(self):
-        boundaries = [pylab.plot([], [])[0] for _ in range(len(self.cells))]
+        boundaries = [plb.plot([], [])[0] for _ in range(len(self.cells))]
         for i, cell in enumerate(self.cells, start=0):
             cell_boundaries = cell.get_boundaries()
             boundaries[i].set_data(cell_boundaries[0], cell_boundaries[1])

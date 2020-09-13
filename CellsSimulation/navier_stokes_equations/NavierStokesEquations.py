@@ -1,9 +1,11 @@
 import numpy as np
 from LaplaceOperator import LaplaceOperator
 import Constants as C
-import scipy
+import scipy.sparse as sparse
 from Boundaries import Boundaries, BoundaryConditionsType
 import enum
+import matplotlib.pyplot as plt
+from enums import Fields
 
 
 class ORIENTATION(enum.Enum):
@@ -34,10 +36,11 @@ class NavierStokesEquations:
         self.__delta_t = C.TIME_STEP
 
         self.__laplace_operator_p_prime = LaplaceOperator(delta_x, delta_y)
+
         self.__laplace_operator_velocity = LaplaceOperator(delta_x, delta_y)
         self.__laplace_operator_velocity.multiply_operators_matrix(-1 / C.Re)
-        identity_matrix = scipy.sparse.dia_matrix \
-            (np.full([delta_x * delta_y], 1), shape=(delta_x * delta_y, delta_x * delta_y))
+        matrix_side_length = (len(delta_x) + 1) * (len(delta_y) + 1)
+        identity_matrix = sparse.diags(np.full(matrix_side_length, 1))
         self.__laplace_operator_velocity = self.__laplace_operator_velocity.add_to_operators_matrix(identity_matrix)
 
     def next_step(self):
@@ -52,16 +55,16 @@ class NavierStokesEquations:
         predicted_v = self.__laplace_operator_velocity.solve(right_side_predicted_v)
 
         # calculate p prime
-        right_side_p_prime = -(self.__divergence_x(predicted_u, Field.U) +
-                               self.__divergence_y(predicted_v, Field.V)) / self.__delta_t
+        right_side_p_prime = -(self.__divergence_x(predicted_u, Fields.U) +
+                               self.__divergence_y(predicted_v, Fields.V)) / self.__delta_t
         p_prime = self.__laplace_operator_p_prime.solve(right_side_p_prime)
 
         # calculate the new fields
         self.__p_matrix = p_prime + self.__p_matrix
         self.__u_matrix = self.__u_matrix - \
-                          np.dot(self.__divergence_x(p_prime, Field.P), self.__delta_t)
+                          np.dot(self.__divergence_x(p_prime, Fields.P), self.__delta_t)
         self.__v_matrix = self.__v_matrix - \
-                          np.dot(self.__divergence_y(p_prime, Field.P), self.__delta_t)
+                          np.dot(self.__divergence_y(p_prime, Fields.P), self.__delta_t)
 
     def __non_linear_parameters_x(self):
         # P = plus  M = minus h = half
@@ -92,7 +95,7 @@ class NavierStokesEquations:
                                   np.dot((np.dot(u_i_jPh, v_iMh_jP1) - np.dot(u_i_jMh, v_iMh_j)),
                                          self.__delta_x)
 
-        return self.__add_boundaries_all(non_linear_parameters_x, Field.U)
+        return self.__add_boundaries_all(non_linear_parameters_x, Fields.U)
 
     def __non_linear_parameters_y(self):
         # P = plus  M = minus h = half
@@ -123,7 +126,7 @@ class NavierStokesEquations:
                                   np.dot((np.dot(v_i_jPh, v_i_jPh) - np.dot(v_i_jMh, v_i_jMh)),
                                          self.__delta_x)
 
-        return self.__add_boundaries_all(non_linear_parameters_y, Field.V)
+        return self.__add_boundaries_all(non_linear_parameters_y, Fields.V)
 
     def __pressure_terms_x(self):
         # P = plus
@@ -132,8 +135,8 @@ class NavierStokesEquations:
 
         results = p_i_jP1 - p_i_j
         results = np.dot(results, self.__delta_y)
-        results = self.__add_boundaries_left(results, Field.U)
-        results = self.__add_boundaries_right(results, Field.U)
+        results = self.__add_boundaries_left(results, Fields.U)
+        results = self.__add_boundaries_right(results, Fields.U)
         return results
 
     def __pressure_terms_y(self):
@@ -143,8 +146,8 @@ class NavierStokesEquations:
 
         results = p_iP1_j - p_i_j
         results = np.dot(results.transpose(), self.__delta_x).transpose()
-        results = self.__add_boundaries_left(results, Field.V)
-        results = self.__add_boundaries_right(results, Field.V)
+        results = self.__add_boundaries_left(results, Fields.V)
+        results = self.__add_boundaries_right(results, Fields.V)
         return results
 
     def __divergence_x(self, matrix, field):
@@ -168,28 +171,28 @@ class NavierStokesEquations:
     ###################################### Boundaries
 
     def __add_boundaries_left(self, matrix, field):
-        if field == Field.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
+        if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
             left_boundary = np.concatenate(([0], matrix[0], [0]), axis=0)
         else:
             left_boundary = np.concatenate(([0], self.__boundaries.get_left(field), [0]), axis=0)
         return np.concatenate((left_boundary.T, matrix), axis=1)
 
     def __add_boundaries_right(self, matrix, field):
-        if field == Field.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
+        if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
             right_boundary = np.concatenate(([0], matrix[-1], [0]), axis=0)
         else:
             right_boundary = np.concatenate(([0], self.__boundaries.get_right(field), [0]), axis=0)
         return np.concatenate((matrix, right_boundary.T), axis=1)
 
     def __add_boundaries_top(self, matrix, field):
-        if field == Field.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
+        if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
             top_boundary = np.concatenate(([0], matrix.T[0], [0]), axis=0)
         else:
             top_boundary = np.concatenate(([0], self.__boundaries.get_top(field), [0]), axis=0)
         return np.concatenate((top_boundary, matrix), axis=0)
 
     def __add_boundaries_bottom(self, matrix, field):
-        if field == Field.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
+        if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
             bottom_boundary = np.concatenate(([0], matrix.T[-1], [0]), axis=0)
         else:
             bottom_boundary = np.concatenate(([0], self.__boundaries.get_bottom(field), [0]), axis=0)

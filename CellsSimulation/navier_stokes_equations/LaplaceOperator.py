@@ -42,9 +42,10 @@ class LaplaceOperator:
             np.concatenate((operators_matrix_diagonals, boundary_values_block), axis=1)
         offsets = np.array([grid_length_x, 1, 0, -1, -grid_length_x])
 
-        operators_matrix = sparse.dia_matrix \
-            ((operators_matrix_diagonals, offsets),
-             shape=(grid_length_x * grid_length_y, grid_length_x * grid_length_y)).transpose()
+        operators_matrix = sparse.dia_matrix(
+            (operators_matrix_diagonals, offsets),
+            shape=(grid_length_x * grid_length_y, grid_length_x * grid_length_y)
+        ).transpose()
 
         return operators_matrix
 
