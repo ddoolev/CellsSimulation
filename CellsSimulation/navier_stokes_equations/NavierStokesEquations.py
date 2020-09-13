@@ -192,17 +192,24 @@ class NavierStokesEquations:
         return np.concatenate((matrix, bottom_boundary), axis=0)
 
     def __add_boundaries_all(self, matrix, field):
-        matrix = np.concatenate((self.__boundaries.get_left(field).T, matrix,
-                                 self.__boundaries.get_right(field).T), axis=1)
+        left_boundary = np.array([self.__boundaries.get_left(field)]).T
+        right_boundary = np.array([self.__boundaries.get_right(field)]).T
+        matrix = np.concatenate((left_boundary, matrix, right_boundary), axis=1)
         top_boundary = np.concatenate(([0], self.__boundaries.get_top(field), [0]), axis=0)
+        top_boundary = np.array([top_boundary])
         bottom_boundary = np.concatenate(([0], self.__boundaries.get_bottom(field), [0]), axis=0)
+        bottom_boundary = np.array([bottom_boundary])
         matrix = np.concatenate((top_boundary, matrix, bottom_boundary), axis=0)
         return matrix
 
-    def get_quiver(self, plt):
+    ###################################### Data options
+
+    def quiver(self):
         x = np.concatenate(([0], self.__delta_x)).cumsum()
         y = np.concatenate(([0], self.__delta_y)).cumsum()
         xx, yy = np.meshgrid(x, y)
-        plt.quiver(xx, yy, self.__u_matrix, self.__v_matrix)
+        full_u_matrix = self.__add_boundaries_all(self.__u_matrix, Fields.U)
+        full_v_matrix = self.__add_boundaries_all(self.__v_matrix, Fields.V)
+        plt.quiver(xx, yy, full_u_matrix, full_v_matrix)
 
 
