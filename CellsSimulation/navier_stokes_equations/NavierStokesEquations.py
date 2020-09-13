@@ -168,28 +168,28 @@ class NavierStokesEquations:
             left_boundary = np.concatenate(([0], matrix[0], [0]), axis=0)
         else:
             left_boundary = np.concatenate(([0], self.__boundaries.get_left(field), [0]), axis=0)
-        return np.concatenate((left_boundary.T, matrix), axis=1)
+        return np.concatenate((np.array([left_boundary]).T, matrix), axis=1)
 
     def __add_boundaries_right(self, matrix, field):
         if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
             right_boundary = np.concatenate(([0], matrix[-1], [0]), axis=0)
         else:
             right_boundary = np.concatenate(([0], self.__boundaries.get_right(field), [0]), axis=0)
-        return np.concatenate((matrix, right_boundary.T), axis=1)
+        return np.concatenate((matrix, np.array([right_boundary]).T), axis=1)
 
     def __add_boundaries_top(self, matrix, field):
         if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
             top_boundary = np.concatenate(([0], matrix.T[0], [0]), axis=0)
         else:
             top_boundary = np.concatenate(([0], self.__boundaries.get_top(field), [0]), axis=0)
-        return np.concatenate((top_boundary, matrix), axis=0)
+        return np.concatenate(([top_boundary], matrix), axis=0)
 
     def __add_boundaries_bottom(self, matrix, field):
         if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
             bottom_boundary = np.concatenate(([0], matrix.T[-1], [0]), axis=0)
         else:
             bottom_boundary = np.concatenate(([0], self.__boundaries.get_bottom(field), [0]), axis=0)
-        return np.concatenate((matrix, bottom_boundary), axis=0)
+        return np.concatenate((matrix, [bottom_boundary]), axis=0)
 
     def __add_boundaries_all(self, matrix, field):
         if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
@@ -209,14 +209,38 @@ class NavierStokesEquations:
         matrix = np.concatenate((top_boundary, matrix, bottom_boundary), axis=0)
         return matrix
 
+    ###################################### On Index Fields
+
+    def __get_index_u_matrix(self):
+        left_boundary = np.array([self.__boundaries.get_left(Fields.U)]).T
+        right_boundary = np.array([self.__boundaries.get_right(Fields.U)]).T
+        index_u_matrix = np.concatenate((left_boundary, self.__u_matrix, right_boundary), axis=1)
+        index_u_matrix = (index_u_matrix[1:, :] + index_u_matrix[:-1, :])/2
+        index_u_matrix = self.__add_boundaries_top(index_u_matrix, Fields.U)
+        index_u_matrix = self.__add_boundaries_bottom(index_u_matrix, Fields.U)
+        return index_u_matrix
+
+    def __get_index_v_matrix(self):
+        top_boundary = [self.__boundaries.get_top(Fields.V)]
+        bottom_boundary = [self.__boundaries.get_bottom(Fields.V)]
+        index_v_matrix = np.concatenate((top_boundary, self.__v_matrix, bottom_boundary), axis=0)
+        index_v_matrix = (index_v_matrix[:, 1:] + index_v_matrix[:, :-1])/2
+        index_v_matrix = self.__add_boundaries_left(index_v_matrix, Fields.V)
+        index_v_matrix = self.__add_boundaries_right(index_v_matrix, Fields.V)
+        return index_v_matrix
+
     ###################################### Data options
 
     def quiver(self):
-        x = np.concatenate(([0], self.__delta_x)).cumsum()
-        y = np.concatenate(([0], self.__delta_y)).cumsum()
+        x = (self.__delta_x[1:] + self.__delta_x[:-1])/2
+        y = (self.__delta_y[1:] + self.__delta_y[:-1])/2
+
+        x = np.concatenate(([self.__delta_x[0]/2], x, [self.__delta_x[-1]/2])).cumsum()
+        y = np.concatenate(([self.__delta_y[0]/2], y, [self.__delta_y[-1]/2])).cumsum()
         xx, yy = np.meshgrid(x, y)
-        full_u_matrix = self.__add_boundaries_all(self.__u_matrix, Fields.U)
-        full_v_matrix = self.__add_boundaries_all(self.__v_matrix, Fields.V)
-        plt.quiver(xx, yy, full_u_matrix, full_v_matrix)
+
+        index_u_matrix = self.__get_index_u_matrix()
+        index_v_matrix = self.__get_index_v_matrix()
+        plt.quiver(xx, yy, index_u_matrix, index_v_matrix)
 
 

@@ -6,14 +6,14 @@ from enums import Fields
 
 if __name__ == "__main__":
 
-    simulation_size = 100
-    time = 1000
+    simulation_size = 20
+    time = 100000
 
     u_matrix = np.full((simulation_size, simulation_size-1), 0)
     v_matrix = np.full((simulation_size-1, simulation_size), 0)
     p_matrix = np.full((simulation_size, simulation_size), 0)
 
-    delta = np.concatenate(([1/2], np.full(simulation_size-2, 1), [1/2]))
+    delta = np.full(simulation_size, 1)
 
     full_0 = np.full(simulation_size, 0)
     full_1 = np.full(simulation_size, 1)
