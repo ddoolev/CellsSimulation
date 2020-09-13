@@ -1,45 +1,51 @@
 import numpy as np
-import scipy
+import scipy.sparse as sparse
 
 
 class LaplaceOperator:
+    __lu_operator: object
 
     def __init__(self, delta_x, delta_y):
         self.__operators_matrix = \
             self.__create_laplace_operators_matrix(delta_x, delta_y)
+        self.__lu_decomposition_updated = False
 
-    def laplacian_operation(self, data_matrix):
-        results = self.__operators_matrix @ (data_matrix.flatten())
-        return np.reshape(results, (len(data_matrix), len(data_matrix[0])))
+    def solve(self, solution_matrix):
+        if not self.__lu_decomposition_updated:
+            self.__operators_matrix_lu_decomposition_update()
+        results = self.__lu_operator.solve(solution_matrix.flatten())
+        return np.reshape(results, (len(solution_matrix), len(solution_matrix[0])))
+
+    def __operators_matrix_lu_decomposition_update(self):
+        self.__lu_operator = sparse.sla.splu(self.__operators_matrix)
+        self.__lu_decomposition_updated = True
 
     # create Laplace operator's matrix, to calculate the laplacian for every point faster
-
     def __create_laplace_operators_matrix(self, delta_x, delta_y):
         grid_length_x = len(delta_x) + 1
         grid_length_y = len(delta_y) + 1
         num_of_points_in_matrix = grid_length_x * grid_length_y
         operators_matrix_diagonals = [[], [], [], [], []]
 
-        boundary_values_block = self.__createBoundaryValueBlock(grid_length_x)
+        boundary_values_block = self.__create_boundary_value_block(grid_length_x)
 
         operators_matrix_diagonals = \
-            np.concatenate((operators_matrix_diagonals, boundary_values_block), 1)
+            np.concatenate((operators_matrix_diagonals, boundary_values_block), axis=1)
 
         # Iterate on the matrix blocks
         for i in range(grid_length_x, num_of_points_in_matrix - grid_length_x, grid_length_x):
             block = self.__create_laplace_operators_matrix_block(delta_x, delta_y, i)
             operators_matrix_diagonals = \
-                np.concatenate((operators_matrix_diagonals, block), 1)
+                np.concatenate((operators_matrix_diagonals, block), axis=1)
 
         operators_matrix_diagonals = \
-            np.concatenate((operators_matrix_diagonals, boundary_values_block), 1)
+            np.concatenate((operators_matrix_diagonals, boundary_values_block), axis=1)
         offsets = np.array([grid_length_x, 1, 0, -1, -grid_length_x])
 
-        operators_matrix = scipy.sparse.dia_matrix \
+        operators_matrix = sparse.dia_matrix \
             ((operators_matrix_diagonals, offsets),
              shape=(grid_length_x * grid_length_y, grid_length_x * grid_length_y)).transpose()
 
-        # print(operators_matrix.toarray())
         return operators_matrix
 
     @staticmethod
@@ -47,12 +53,12 @@ class LaplaceOperator:
         block = [[], [], [], [], []]
         boundary_vector = [[0], [0], [0], [0], [0]]
         for i in range(grid_length_x):
-            block = np.concatenate((block, boundary_vector), 1)
+            block = np.concatenate((block, boundary_vector), axis=1)
         return block
 
     @staticmethod
     def __create_laplace_operators_matrix_vector(delta_x, delta_y, i):
-        # create the coeficients. 
+        # create the coefficients.
         # P=plus, M=minus
         grid_length_x = len(delta_x) + 1
         x_index = i // grid_length_x
@@ -73,14 +79,22 @@ class LaplaceOperator:
         boundary_vector = [[0], [0], [0], [0], [0]]
         grid_length_x = len(delta_x) + 1
         # boundary value
-        block = np.concatenate((block, boundary_vector), 1)
+        block = np.concatenate((block, boundary_vector), axis=1)
 
         # Create a block in the matrix
         for j in range(i + 1, i + grid_length_x - 1):
-            coeficient_vector = self.__create_laplace_operators_matrix_vector(delta_x, delta_y, j)
-            block = np.concatenate((block, coeficient_vector), 1)
+            coefficient_vector = self.__create_laplace_operators_matrix_vector(delta_x, delta_y, j)
+            block = np.concatenate((block, coefficient_vector), axis=1)
 
         # boundary value
-        block = np.concatenate((block, boundary_vector), 1)
+        block = np.concatenate((block, boundary_vector), axis=1)
 
         return block
+
+    def multiply_operators_matrix(self, argument):
+        self.__operators_matrix = self.__operators_matrix.multiply(argument)
+        self.__lu_decomposition_updated = False
+
+    def add_to_operators_matrix(self, add_matrix):
+        self.__operators_matrix += add_matrix
+        self.__lu_decomposition_updated = False

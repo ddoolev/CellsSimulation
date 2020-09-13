@@ -43,7 +43,7 @@ class Simulation:
             pyplot.cla()
             for cell in self.cells:
                 cell_status = cell.get_status()
-                if cell_status["state"] == Cell.State.FINISHED_SPLITING:
+                if cell_status["state"] == Cell.State.FINISHED_SPLITTING:
                     self.remove_cell(cell)
                     self.add_cells(cell_status["new_cells"])
             self.calculate_boundaries()

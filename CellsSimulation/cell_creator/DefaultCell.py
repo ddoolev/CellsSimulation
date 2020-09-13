@@ -36,7 +36,7 @@ class DefaultCell(Cell.Cell):
         current_angle = angle
         for i in range(num_of_points):
             [x, y] = self.polar_to_cartesian(r, current_angle)
-            boundaries = np.concatenate((boundaries, [[x], [y]]), 1)
+            boundaries = np.concatenate((boundaries, [[x], [y]]), axis=1)
             current_angle += angle
 
         self._boundaries = boundaries
@@ -86,7 +86,7 @@ class DefaultCell(Cell.Cell):
         new_cells = self._split()
         for cell in new_cells:
             C.ENV.process(cell.update())
-        state = Cell.State.FINISHED_SPLITING
+        state = Cell.State.FINISHED_SPLITTING
         self._general_status = {"state": state, "new_cells": new_cells}
 
     def _update_grow(self):
