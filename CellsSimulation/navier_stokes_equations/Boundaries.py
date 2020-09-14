@@ -5,11 +5,11 @@ from enums import Fields
 
 class BoundaryConditionsType(enum.Enum):
     DIRICHLET = 0
-    NUEMANN = 1
+    NEUMANN = 1
 
 
 class WarningsStrings:
-    NUEMANN_PRESSURE = "Should not use pressure values when in Neumann boundary condition type"
+    NEUMANN_PRESSURE = "Should not use pressure values when in Neumann boundary condition type"
 
 
 class Boundaries:
@@ -18,7 +18,7 @@ class Boundaries:
     # __p: Dict[str:np.array]
     # __boundary_conditions_type: BoundaryConditionsType
 
-    def __init__(self, left, right, top, bottom, boundary_conditions_type=BoundaryConditionsType.NUEMANN):
+    def __init__(self, left, right, top, bottom, boundary_conditions_type=BoundaryConditionsType.NEUMANN):
         # Boundaries should not include the corners
         self.__left = left
         self.__right = right
@@ -39,7 +39,7 @@ class Boundaries:
         if fields == fields.ALL:
             return self.__left
         elif fields == fields.U:
-            warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
+            warnings.warn(WarningsStrings.NEUMANN_PRESSURE)
         return self.__left[fields]
 
     def set_left(self, left_boundary, fields=Fields.ALL):
@@ -52,7 +52,7 @@ class Boundaries:
         if fields == Fields.ALL:
             return self.__right
         elif fields == Fields.U:
-            warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
+            warnings.warn(WarningsStrings.NEUMANN_PRESSURE)
         return self.__right[fields]
 
     def set_right(self, right_boundary, fields=Fields.ALL):
@@ -65,7 +65,7 @@ class Boundaries:
         if fields == Fields.ALL:
             return self.__top
         elif fields == Fields.U:
-            warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
+            warnings.warn(WarningsStrings.NEUMANN_PRESSURE)
         return self.__top[fields]
 
     def set_top(self, top_boundary, fields=Fields.ALL):
@@ -78,7 +78,7 @@ class Boundaries:
         if fields == Fields.ALL:
             return self.__bottom
         elif fields == Fields.U:
-            warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
+            warnings.warn(WarningsStrings.NEUMANN_PRESSURE)
         return self.__bottom[fields]
 
     def set_bottom(self, bottom_boundary, fields=Fields.ALL):
