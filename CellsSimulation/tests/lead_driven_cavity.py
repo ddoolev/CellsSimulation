@@ -35,6 +35,6 @@ if __name__ == "__main__":
     plt.pause(0.1)
     for i in range(time):
         plt.cla()
-        # domain.next_step()
+        domain.next_step()
         domain.quiver()
         plt.pause(0.1)

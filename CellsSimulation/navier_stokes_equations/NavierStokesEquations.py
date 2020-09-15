@@ -54,16 +54,16 @@ class NavierStokesEquations:
     def __non_linear_parameters_x(self):
         # P = plus  M = minus h = half
         # find the matrices without the unneeded columns and rows
-        u_iP1_j = self.__u_matrix[2:, 1:-1]
+        u_iP1_j = self.__u_matrix[1:-1, 2:]
         u_i_j = self.__u_matrix[1:-1, 1:-1]
-        u_iM1_j = self.__u_matrix[:-2, 1:-1]
-        u_i_jP1 = self.__u_matrix[1:-1, 2:]
-        u_i_jM1 = self.__u_matrix[1:-1, :-2]
+        u_iM1_j = self.__u_matrix[1:-1, :-2]
+        u_i_jP1 = self.__u_matrix[2:, 1:-1]
+        u_i_jM1 = self.__u_matrix[:-2, 1:-1]
 
-        v_i_jP1 = self.__v_matrix[1:-1, 2:]
-        v_iM1_jP1 = self.__v_matrix[:-2, 2:]
+        v_i_jP1 = self.__v_matrix[2:, 1:-1]
+        v_iM1_jP1 = self.__v_matrix[2:, :-2]
         v_i_j = self.__v_matrix[1:-1, 1:-1]
-        v_iM1_j = self.__v_matrix[:-2, 1:-1]
+        v_iM1_j = self.__v_matrix[1:-1, :-2]
 
         # find matrices with half indexes
         u_iPh_j = (u_iP1_j + u_i_j) / 2
@@ -85,16 +85,16 @@ class NavierStokesEquations:
     def __non_linear_parameters_y(self):
         # P = plus  M = minus h = half
         # find the matrices without the unneeded columns and rows
-        u_iP1_jM1 = self.__u_matrix[2:, :-2]
-        u_iP1_j = self.__u_matrix[2:, 1:-1]
-        u_i_jM1 = self.__u_matrix[1:-1, :-2]
+        u_iP1_jM1 = self.__u_matrix[:-2, 2:]
+        u_iP1_j = self.__u_matrix[1:-1, 2:]
+        u_i_jM1 = self.__u_matrix[:-2, 1:-1]
         u_i_j = self.__u_matrix[1:-1, 1:-1]
 
         v_i_j = self.__v_matrix[1:-1, 1:-1]
-        v_iP1_j = self.__v_matrix[2:, 1:-1]
-        v_i_jP1 = self.__v_matrix[1:-1, 2:]
-        v_iM1_j = self.__v_matrix[:-2, 1:-1]
-        v_i_jM1 = self.__v_matrix[1:-1, :-2]
+        v_iP1_j = self.__v_matrix[1:-1, 2:]
+        v_i_jP1 = self.__v_matrix[2:, 1:-1]
+        v_iM1_j = self.__v_matrix[1:-1, :-2]
+        v_i_jM1 = self.__v_matrix[:-2, 1:-1]
 
         # find matrices with half indexes
         u_iP1_jMh = (u_iP1_jM1 + u_iP1_j) / 2
@@ -126,8 +126,8 @@ class NavierStokesEquations:
 
     def __pressure_terms_y(self):
         # P = plus
-        p_iP1_j = self.__p_matrix[2:-1, :]
-        p_i_j = self.__p_matrix[1:-2, :]
+        p_iP1_j = self.__p_matrix[:, 2:-1]
+        p_i_j = self.__p_matrix[:, 1:-2]
 
         results = p_iP1_j - p_i_j
         results = np.dot(results.transpose(), self.__delta_x).transpose()
@@ -137,8 +137,8 @@ class NavierStokesEquations:
 
     def __divergence_x(self, matrix, field):
         # M = minus
-        matrix_iP1_j = matrix[:, 1:]
-        matrix_i_j = matrix[:, :-1]
+        matrix_iP1_j = matrix[1:, :]
+        matrix_i_j = matrix[:-1, :]
         results = (matrix_iP1_j - matrix_i_j) / self.__delta_x
         results = self.__boundaries.add_boundaries_left(results, field)
         results = self.__boundaries.add_boundaries_right(results, field)
@@ -146,8 +146,8 @@ class NavierStokesEquations:
 
     def __divergence_y(self, matrix, field):
         # M = minus
-        matrix_i_jP1 = matrix[1:, :]
-        matrix_i_j = matrix[:-1, :]
+        matrix_i_jP1 = matrix[:, 1:]
+        matrix_i_j = matrix[:, :-1]
         results = (matrix_i_jP1 - matrix_i_j) / self.__delta_x
         results = self.__boundaries.add_boundaries_bottom(results, field)
         results = self.__boundaries.add_boundaries_top(results, field)
