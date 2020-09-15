@@ -1,29 +1,31 @@
 import numpy as np
-from Boundaries import Boundaries
-from NavierStokesEquations import NavierStokesEquations
+from Boundaries import Boundaries, Orientation
+from NavierStokesEquations import NavierStokesEquations, Fields, Delta
 import matplotlib.pyplot as plt
-from enums import Fields
 
 if __name__ == "__main__":
 
-    simulation_size = 20
+    grid_size = 20
     time = 100000
 
-    u_matrix = np.full((simulation_size, simulation_size-1), 0)
-    v_matrix = np.full((simulation_size-1, simulation_size), 0)
-    p_matrix = np.full((simulation_size, simulation_size), 0)
+    u_matrix = np.full((grid_size + 1, grid_size), 0)
+    v_matrix = np.full((grid_size, grid_size + 1), 0)
+    p_matrix = np.full((grid_size + 1, grid_size + 1), 0)
 
-    delta = np.full(simulation_size, 1)
+    delta = np.full(grid_size + 1, 1)
 
-    full_0 = np.full(simulation_size, 0)
-    full_1 = np.full(simulation_size, 1)
+    full_0 = np.full(grid_size + 1, 0)
+    full_1 = np.full(grid_size + 1, 1)
 
-    boundary_left = {Fields.U: full_0, Fields.V: full_0[1:], Fields.P: full_0}
-    boundary_right = {Fields.U: full_0, Fields.V: full_0[1:], Fields.P: full_0}
-    boundary_top = {Fields.U: full_1[1:], Fields.V: full_0, Fields.P: full_0}
-    boundary_bottom = {Fields.U: full_0[1:], Fields.V: full_0, Fields.P: full_0}
+    boundary_left = {Fields.u: full_0, Fields.v: full_0[1:], Fields.p: full_0}
+    boundary_right = {Fields.u: full_0, Fields.v: full_0[1:], Fields.p: full_0}
+    boundary_top = {Fields.u: full_1[1:], Fields.v: full_0, Fields.p: full_0}
+    boundary_bottom = {Fields.u: full_0[1:], Fields.v: full_0, Fields.p: full_0}
 
-    boundaries = Boundaries(boundary_left, boundary_right, boundary_top, boundary_bottom)
+    boundaries = Boundaries({Orientation.left: boundary_left,
+                             Orientation.right: boundary_right,
+                             Orientation.top: boundary_top,
+                             Orientation.bottom: boundary_bottom})
 
     domain = NavierStokesEquations(p_matrix, v_matrix, u_matrix, delta, delta, boundaries)
 
