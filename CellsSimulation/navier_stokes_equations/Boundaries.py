@@ -1,6 +1,6 @@
 import enum
 import warnings
-from NavierStokesEquations import Fields, Delta
+from general_enums import Fields
 import numpy as np
 
 

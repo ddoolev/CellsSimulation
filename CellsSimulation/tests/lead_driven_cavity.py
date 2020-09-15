@@ -1,6 +1,7 @@
 import numpy as np
 from Boundaries import Boundaries, Orientation
-from NavierStokesEquations import NavierStokesEquations, Fields, Delta
+from NavierStokesEquations import NavierStokesEquations
+from general_enums import Fields, Delta
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":

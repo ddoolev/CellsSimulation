@@ -1,23 +1,10 @@
-import enum
-
 import numpy as np
 from LaplaceOperator import LaplaceOperator
 import Constants as C
 import scipy.sparse as sparse
-from Boundaries import Boundaries, BoundaryConditionsType, Orientation
+from Boundaries import Boundaries, Orientation
 import matplotlib.pyplot as plt
-
-
-class Fields(enum.Enum):
-    u = 0
-    v = 1
-    p = 2
-    all = 3
-
-
-class Delta(enum.Enum):
-    x = 0
-    y = 1
+from general_enums import Fields
 
 
 class NavierStokesEquations:
