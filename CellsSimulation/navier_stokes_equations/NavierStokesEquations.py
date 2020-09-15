@@ -30,10 +30,10 @@ class NavierStokesEquations:
 
     def next_step(self):
         # calculate predicted u and v
-        right_side_predicted_u = self.__pressure_terms_x() + \
+        right_side_predicted_u = self.__pressure_terms_predicted_u() + \
                                  self.__non_linear_parameters_x() + \
                                  self.__u_matrix
-        right_side_predicted_v = self.__pressure_terms_y() + \
+        right_side_predicted_v = self.__pressure_terms_predicted_v() + \
                                  self.__non_linear_parameters_y() + \
                                  self.__v_matrix
         predicted_u = self.__laplace_operator_velocity.solve(right_side_predicted_u)
@@ -113,26 +113,38 @@ class NavierStokesEquations:
 
         return self.__boundaries.add_boundaries_all(non_linear_parameters_y, Fields.v)
 
-    def __pressure_terms_x(self):
+    def __pressure_terms_predicted_u(self):
         # P = plus
-        p_i_jP1 = self.__p_matrix[:, 2:-1]
-        p_i_j = self.__p_matrix[:, 1:-2]
+        p_matrix_top = self.__boundaries.get_boundary(Orientation.top, Fields.p)
+        p_matrix_bottom = self.__boundaries.get_boundary(Orientation.bottom, Fields.p)
+        p_matrix_top_bottom_boundaries = \
+            np.concatenate(([p_matrix_bottom], self.__p_matrix, [p_matrix_top]), axis=0)
+        p_iP1_j = p_matrix_top_bottom_boundaries[:, 1:]
+        p_i_j = p_matrix_top_bottom_boundaries[:, :-1]
 
-        results = p_i_jP1 - p_i_j
-        results = np.dot(results, self.__delta_y)
+        results = p_iP1_j - p_i_j
+        delta_y_with_top_bottom_boundaries = \
+            np.concatenate(([1], self.__delta_y, [1]))
+        results = np.multiply(results.T, delta_y_with_top_bottom_boundaries).T
         results = self.__boundaries.add_boundaries_left(results, Fields.u)
         results = self.__boundaries.add_boundaries_right(results, Fields.u)
         return results
 
-    def __pressure_terms_y(self):
+    def __pressure_terms_predicted_v(self):
         # P = plus
-        p_iP1_j = self.__p_matrix[:, 2:-1]
-        p_i_j = self.__p_matrix[:, 1:-2]
+        p_matrix_left = np.array(self.__boundaries.get_boundary(Orientation.left, Fields.p)).T
+        p_matrix_right = np.array(self.__boundaries.get_boundary(Orientation.right, Fields.p)).T
+        p_matrix_left_right_boundaries = \
+            np.concatenate((p_matrix_left, self.__p_matrix, p_matrix_right), axis=1)
+        p_i_jP1 = p_matrix_left_right_boundaries[1:, :]
+        p_i_j = p_matrix_left_right_boundaries[:-1, :]
 
-        results = p_iP1_j - p_i_j
-        results = np.dot(results.transpose(), self.__delta_x).transpose()
-        results = self.__boundaries.add_boundaries_left(results, Fields.v)
-        results = self.__boundaries.add_boundaries_right(results, Fields.v)
+        results = p_i_jP1 - p_i_j
+        delta_x_with_left_right_boundaries = \
+            np.concatenate(([1], self.__delta_x, [1]))
+        results = np.multiply(results, delta_x_with_left_right_boundaries)
+        results = self.__boundaries.add_boundaries_top(results, Fields.u)
+        results = self.__boundaries.add_boundaries_bottom(results, Fields.u)
         return results
 
     def __divergence_x(self, matrix, field):
