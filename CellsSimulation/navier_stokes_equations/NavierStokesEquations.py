@@ -149,8 +149,8 @@ class NavierStokesEquations:
         matrix_i_jP1 = matrix[1:, :]
         matrix_i_j = matrix[:-1, :]
         results = (matrix_i_jP1 - matrix_i_j) / self.__delta_x
-        results = self.__boundaries.add_boundaries_top(results, field)
         results = self.__boundaries.add_boundaries_bottom(results, field)
+        results = self.__boundaries.add_boundaries_top(results, field)
         return results
 
     ###################################### On Index Fields
@@ -159,16 +159,16 @@ class NavierStokesEquations:
         left_boundary = np.array([self.__boundaries.get_boundary(Orientation.left, Fields.u)]).T
         right_boundary = np.array([self.__boundaries.get_boundary(Orientation.right, Fields.u)]).T
         index_u_matrix = np.concatenate((left_boundary, self.__u_matrix, right_boundary), axis=1)
-        index_u_matrix = (index_u_matrix[:, 1:] + index_u_matrix[:, :-1])/2
-        index_u_matrix = self.__boundaries.add_boundaries_top(index_u_matrix, Fields.u)
+        index_u_matrix = (index_u_matrix[1:, :] + index_u_matrix[:-1, :])/2
         index_u_matrix = self.__boundaries.add_boundaries_bottom(index_u_matrix, Fields.u)
+        index_u_matrix = self.__boundaries.add_boundaries_top(index_u_matrix, Fields.u)
         return index_u_matrix
 
     def __get_index_v_matrix(self):
-        top_boundary = [self.__boundaries.get_boundary(Orientation.top, Fields.v)]
         bottom_boundary = [self.__boundaries.get_boundary(Orientation.bottom, Fields.v)]
-        index_v_matrix = np.concatenate((top_boundary, self.__v_matrix, bottom_boundary), axis=0)
-        index_v_matrix = (index_v_matrix[1:, :] + index_v_matrix[:-1, :])/2
+        top_boundary = [self.__boundaries.get_boundary(Orientation.top, Fields.v)]
+        index_v_matrix = np.concatenate((bottom_boundary, self.__v_matrix, top_boundary), axis=0)
+        index_v_matrix = (index_v_matrix[:, 1:] + index_v_matrix[:, :-1])/2
         index_v_matrix = self.__boundaries.add_boundaries_left(index_v_matrix, Fields.v)
         index_v_matrix = self.__boundaries.add_boundaries_right(index_v_matrix, Fields.v)
         return index_v_matrix
