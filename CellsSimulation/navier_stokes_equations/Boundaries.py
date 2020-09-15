@@ -5,12 +5,20 @@ import numpy as np
 
 
 class BoundaryConditionsType(enum.Enum):
-    DIRICHLET = 0
-    NEUMANN = 1
+    dirichlet = 0
+    neumann = 1
 
 
 class WarningsStrings:
-    NEUMANN_PRESSURE = "Should not use pressure values when in Neumann boundary condition type"
+    neumann_pressure = "Should not use pressure values when in Neumann boundary condition type"
+
+
+class Orientation(enum.Enum):
+    left = 0
+    right = 1
+    top = 2
+    bottom = 3
+    all = 4
 
 
 class Boundaries:

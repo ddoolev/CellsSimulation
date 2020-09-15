@@ -6,17 +6,17 @@ from enums import Fields
 
 if __name__ == "__main__":
 
-    grid_size = 20
+    simulation_size = 20
     time = 100000
 
-    u_matrix = np.full((grid_size, grid_size + 1), 0)
-    v_matrix = np.full((grid_size + 1, grid_size), 0)
-    p_matrix = np.full((grid_size + 1, grid_size + 1), 0)
+    u_matrix = np.full((simulation_size, simulation_size-1), 0)
+    v_matrix = np.full((simulation_size-1, simulation_size), 0)
+    p_matrix = np.full((simulation_size, simulation_size), 0)
 
-    delta = np.full(grid_size - 1, 1)
+    delta = np.full(simulation_size, 1)
 
-    full_0 = np.full(grid_size + 1, 0)
-    full_1 = np.full(grid_size + 1, 1)
+    full_0 = np.full(simulation_size, 0)
+    full_1 = np.full(simulation_size, 1)
 
     boundary_left = {Fields.U: full_0, Fields.V: full_0[1:], Fields.P: full_0}
     boundary_right = {Fields.U: full_0, Fields.V: full_0[1:], Fields.P: full_0}
@@ -32,6 +32,6 @@ if __name__ == "__main__":
     plt.pause(0.1)
     for i in range(time):
         plt.cla()
-        domain.next_step()
+        # domain.next_step()
         domain.quiver()
         plt.pause(0.1)
