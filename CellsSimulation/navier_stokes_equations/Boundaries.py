@@ -53,7 +53,7 @@ class Boundaries:
         else:
             self.__boundaries[orientation][field] = boundary
 
-    def add_boundaries_left(self, matrix, field):
+    def add_left(self, matrix, field):
         if field == Fields.p and self.boundary_conditions_type == BoundaryConditionsType.neumann:
             left_boundary = np.concatenate(([0], matrix[0], [0]))
         else:
@@ -61,7 +61,7 @@ class Boundaries:
         left_boundary = np.array([left_boundary]).T
         return np.append(left_boundary, matrix, axis=1)
 
-    def add_boundaries_right(self, matrix, field):
+    def add_right(self, matrix, field):
         if field == Fields.p and self.boundary_conditions_type == BoundaryConditionsType.neumann:
             right_boundary = np.concatenate(([0], matrix[-1], [0]))
         else:
@@ -69,35 +69,43 @@ class Boundaries:
         right_boundary = np.array([right_boundary]).T
         return np.append(matrix, right_boundary, axis=1)
 
-    def add_boundaries_bottom(self, matrix, field):
+    def add_bottom(self, matrix, field):
         if field == Fields.p and self.boundary_conditions_type == BoundaryConditionsType.neumann:
             bottom_boundary = np.concatenate(([0], matrix.T[0], [0]))
         else:
             bottom_boundary = np.concatenate(([0], self.get_boundary(Orientation.bottom, field), [0]), axis=0)
         return np.append([bottom_boundary], matrix, axis=0)
 
-    def add_boundaries_top(self, matrix, field):
+    def add_top(self, matrix, field):
         if field == Fields.p and self.boundary_conditions_type == BoundaryConditionsType.neumann:
             top_boundary = np.concatenate(([0], matrix.T[-1], [0]))
         else:
             top_boundary = np.concatenate(([0], self.get_boundary(Orientation.top, field), [0]), axis=0)
         return np.append(matrix, [top_boundary], axis=0)
 
-    def add_boundaries_all(self, matrix, field):
+    def add_all(self, matrix, field):
         if field == Fields.p and self.boundary_conditions_type == BoundaryConditionsType.neumann:
-            left_boundary = np.array([matrix[0]]).T
-            right_boundary = np.array([matrix[-1]]).T
-            bottom_boundary = np.concatenate(([0], matrix[0].T, [0]), axis=0)
-            top_boundary = np.concatenate(([0], matrix[-1].T, [0]), axis=0)
+            left = np.array([matrix[0]]).T
+            right = np.array([matrix[-1]]).T
+            bottom = [np.concatenate(([0], matrix[0].T, [0]), axis=0)]
+            top = [np.concatenate(([0], matrix[-1].T, [0]), axis=0)]
         else:
-            left_boundary = np.array([self.get_boundary(Orientation.left, field)]).T
-            right_boundary = np.array([self.get_boundary(Orientation.right, field)]).T
-            bottom_boundary = np.concatenate(([0], self.get_boundary(Orientation.bottom, field), [0]), axis=0)
-            top_boundary = np.concatenate(([0], self.get_boundary(Orientation.top, field), [0]), axis=0)
-        bottom_boundary = np.array([bottom_boundary])
-        top_boundary = np.array([top_boundary])
+            left = np.array([self.get_boundary(Orientation.left, field)]).T
+            right = np.array([self.get_boundary(Orientation.right, field)]).T
+            bottom = [np.concatenate(([0], self.get_boundary(Orientation.bottom, field), [0]), axis=0)]
+            top = [np.concatenate(([0], self.get_boundary(Orientation.top, field), [0]), axis=0)]
 
-        matrix = np.concatenate((left_boundary, matrix, right_boundary), axis=1)
-        matrix = np.concatenate((bottom_boundary, matrix, top_boundary), axis=0)
+        matrix = np.concatenate((left, matrix, right), axis=1)
+        matrix = np.concatenate((bottom, matrix, top), axis=0)
+        return matrix
+
+    def add_top_bottom(self, matrix, field, with_left_right_boundaries=False):
+        if with_left_right_boundaries:
+            top = [np.concatenate(([0], self.get_boundary(Orientation.top, field), [0]), axis=0)]
+            bottom = [np.concatenate(([0], self.get_boundary(Orientation.bottom, field), [0]), axis=0)]
+        else:
+            top = [self.get_boundary(Orientation.top, field)]
+            bottom = [self.get_boundary(Orientation.bottom, field)]
+        matrix = np.concatenate((bottom, matrix, top), axis=0)
         return matrix
 
