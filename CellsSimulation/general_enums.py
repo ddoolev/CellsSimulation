@@ -11,3 +11,11 @@ class Fields(enum.Enum):
 class Delta(enum.Enum):
     x = 0
     y = 1
+
+
+class Orientation(enum.Enum):
+    left = 0
+    right = 1
+    bottom = 2
+    top = 3
+    all = 4

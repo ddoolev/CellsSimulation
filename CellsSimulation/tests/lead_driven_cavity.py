@@ -1,8 +1,8 @@
 import numpy as np
-from Boundaries import Boundaries, Orientation
+from Boundaries import Boundaries
 from NavierStokesEquations import NavierStokesEquations
-from general_enums import Fields, Delta
 import matplotlib.pyplot as plt
+from general_enums import Fields, Delta, Orientation
 
 if __name__ == "__main__":
 
@@ -12,8 +12,10 @@ if __name__ == "__main__":
     u_matrix = np.full((grid_size + 1, grid_size), 0)
     v_matrix = np.full((grid_size, grid_size + 1), 0)
     p_matrix = np.full((grid_size + 1, grid_size + 1), 0)
+    fields_matrix = {Fields.u: u_matrix, Fields.v: v_matrix, Fields.p: p_matrix}
 
     delta = np.full(grid_size + 1, 1)
+    delta_matrix = {Delta.x: delta, Delta.y: delta}
 
     full_0 = np.full(grid_size + 1, 0)
     full_1 = np.full(grid_size + 1, 1)
@@ -28,7 +30,7 @@ if __name__ == "__main__":
                              Orientation.top: boundary_top,
                              Orientation.bottom: boundary_bottom})
 
-    domain = NavierStokesEquations(p_matrix, v_matrix, u_matrix, delta, delta, boundaries)
+    domain = NavierStokesEquations(fields_matrix, delta_matrix, boundaries)
 
     # plt.axes.set_aspect('equal')
     domain.quiver()
