@@ -75,10 +75,13 @@ class NavierStokesEquations:
         v_iMh_j = (v_i_j + v_iM1_j) / 2
 
         # final expression
-        non_linear_parameters_x = np.dot((np.dot(u_iPh_j, u_iPh_j) - np.dot(u_iMh_j, u_iMh_j)),
-                                         self.__delta_y) + \
-                                  np.dot((np.dot(u_i_jPh, v_iMh_jP1) - np.dot(u_i_jMh, v_iMh_j)),
-                                         self.__delta_x)
+        delta_y_multiplication = np.multiply(u_iPh_j, u_iPh_j)
+        delta_y_multiplication -= np.multiply(u_iMh_j, u_iMh_j)
+        delta_y_multiplication = delta_y_multiplication.T
+        delta_x_multiplication = np.multiply(u_i_jPh, v_iMh_jP1)
+        delta_x_multiplication -= np.multiply(u_i_jMh, v_iMh_j)
+        non_linear_parameters_x = np.multiply(delta_y_multiplication, self.__delta_y).T + \
+                                  np.multiply(delta_x_multiplication, self.__delta_x)
 
         return self.__boundaries.add_all(non_linear_parameters_x, Fields.u)
 
