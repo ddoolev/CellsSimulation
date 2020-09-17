@@ -2,7 +2,7 @@ import numpy as np
 from Boundaries import Boundaries
 from NavierStokesEquations import NavierStokesEquations
 import matplotlib.pyplot as plt
-from general_enums import Fields, Delta, Orientation
+from general_enums import Field, Delta, Orientation
 
 if __name__ == "__main__":
 
@@ -12,7 +12,7 @@ if __name__ == "__main__":
     u_matrix = np.full((grid_size + 1, grid_size), 0)
     v_matrix = np.full((grid_size, grid_size + 1), 0)
     p_matrix = np.full((grid_size + 1, grid_size + 1), 0)
-    fields_matrix = {Fields.u: u_matrix, Fields.v: v_matrix, Fields.p: p_matrix}
+    fields_matrix = {Field.u: u_matrix, Field.v: v_matrix, Field.p: p_matrix}
 
     delta = np.full(grid_size + 1, 1)
     delta_matrix = {Delta.x: delta, Delta.y: delta}
@@ -20,10 +20,10 @@ if __name__ == "__main__":
     full_0 = np.full(grid_size + 1, 0)
     full_1 = np.full(grid_size + 1, 1)
 
-    boundary_left = {Fields.u: full_0, Fields.v: full_0[1:], Fields.p: full_0}
-    boundary_right = {Fields.u: full_0, Fields.v: full_0[1:], Fields.p: full_0}
-    boundary_top = {Fields.u: full_1[1:], Fields.v: full_0, Fields.p: full_0}
-    boundary_bottom = {Fields.u: full_0[1:], Fields.v: full_0, Fields.p: full_0}
+    boundary_left = {Field.u: full_0, Field.v: full_0[1:], Field.p: full_0}
+    boundary_right = {Field.u: full_0, Field.v: full_0[1:], Field.p: full_0}
+    boundary_top = {Field.u: full_1[1:], Field.v: full_0, Field.p: full_0}
+    boundary_bottom = {Field.u: full_0[1:], Field.v: full_0, Field.p: full_0}
 
     boundaries = Boundaries({Orientation.left: boundary_left,
                              Orientation.right: boundary_right,

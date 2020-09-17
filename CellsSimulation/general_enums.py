@@ -1,7 +1,7 @@
 import enum
 
 
-class Fields(enum.Enum):
+class Field(enum.Enum):
     u = 0
     v = 1
     p = 2

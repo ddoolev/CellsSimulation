@@ -1,5 +1,5 @@
 import enum
-from general_enums import Fields
+from general_enums import Field
 
 
 class BoundaryConditionsType(enum.Enum):
@@ -20,13 +20,13 @@ class Boundaries:
     def __init__(self, boundaries):
         self.__boundaries = boundaries
 
-    def get_boundary(self, orientation, field=Fields.all):
-        if field == Fields.all:
+    def get_boundary(self, orientation, field=Field.all):
+        if field == Field.all:
             return self.__boundaries[orientation]
         return self.__boundaries[orientation][field]
 
-    def set_boundary(self, boundary, orientation, field=Fields.all):
-        if field == Fields.all:
+    def set_boundary(self, boundary, orientation, field=Field.all):
+        if field == Field.all:
             self.__boundaries[orientation] = boundary
         else:
             self.__boundaries[orientation][field] = boundary

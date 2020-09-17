@@ -5,7 +5,7 @@ import scipy.sparse as sparse
 from Boundaries import Boundaries
 import matplotlib.pyplot as plt
 import enum
-from general_enums import Fields, Delta, Orientation
+from general_enums import Field, Delta, Orientation
 
 
 class BoundaryConditionsType(enum.Enum):
@@ -22,7 +22,7 @@ class NavierStokesEquations:
 
     def __init__(self, field_matrix, delta_matrix, boundaries,
                  boundary_conditions_type=BoundaryConditionsType.neumann):
-        self.__field_matrix = field_matrix
+        self.__fields_matrix = field_matrix
         self.__delta_matrix = delta_matrix
         self.__boundaries = boundaries
         self.__delta_t = C.TIME_STEP
@@ -40,46 +40,52 @@ class NavierStokesEquations:
 
     def next_step(self):
         # calculate predicted u and v
+
         right_side_predicted_u = self.__pressure_terms_predicted_u() + \
                                  self.__non_linear_parameters_x() + \
-                                 self.__field_matrix[Fields.u]
+                                 self.__fields_matrix[Field.u]
+
         right_side_predicted_v = self.__pressure_terms_predicted_v() + \
                                  self.__non_linear_parameters_y() + \
-                                 self.__field_matrix[Fields.v]
+                                 self.__fields_matrix[Field.v]
         predicted_u = self.__laplace_operator_velocity.solve(right_side_predicted_u)
         predicted_v = self.__laplace_operator_velocity.solve(right_side_predicted_v)
 
         # calculate p prime
-        right_side_p_prime = -(self.__divergence_x(predicted_u, Fields.u) +
-                               self.__divergence_y(predicted_v, Fields.v)) / self.__delta_t
+        right_side_p_prime = -(self.__divergence_x(predicted_u, Field.u) +
+                               self.__divergence_y(predicted_v, Field.v)) / self.__delta_t
         p_prime = self.__laplace_operator_p_prime.solve(right_side_p_prime)
 
         # calculate the new fields
-        self.__field_matrix[Fields.p] = p_prime + self.__field_matrix[Fields.p]
-        self.__field_matrix[Fields.u] = self.__field_matrix[Fields.u] - \
-                                        np.dot(self.__divergence_x(p_prime, Fields.p), self.__delta_t)
-        self.__field_matrix[Fields.v] = self.__field_matrix[Fields.v] - \
-                                        np.dot(self.__divergence_y(p_prime, Fields.p), self.__delta_t)
+        self.__fields_matrix[Field.p] = p_prime + self.__fields_matrix[Field.p]
+        self.__fields_matrix[Field.u] = self.__fields_matrix[Field.u] - \
+                                        np.dot(self.__divergence_x(p_prime, Field.p), self.__delta_t)
+        self.__fields_matrix[Field.v] = self.__fields_matrix[Field.v] - \
+                                        np.dot(self.__divergence_y(p_prime, Field.p), self.__delta_t)
 
     def __non_linear_parameters_x(self):
         # P = plus  M = minus h = half
-        # find the matrices without the unneeded columns and rows
-        u_iP1_j = self.__field_matrix[Fields.u][1:-1, 2:]
-        u_i_j = self.__field_matrix[Fields.u][1:-1, 1:-1]
-        u_iM1_j = self.__field_matrix[Fields.u][1:-1, :-2]
-        u_i_jP1 = self.__field_matrix[Fields.u][2:, 1:-1]
-        u_i_jM1 = self.__field_matrix[Fields.u][:-2, 1:-1]
+        u_matrix = self.__fields_matrix[Field.u]
+        v_matrix = self.__fields_matrix[Field.v]
 
-        v_i_jP1 = self.__field_matrix[Fields.v][2:, 1:-1]
-        v_iM1_jP1 = self.__field_matrix[Fields.v][2:, :-2]
-        v_i_j = self.__field_matrix[Fields.v][1:-1, 1:-1]
-        v_iM1_j = self.__field_matrix[Fields.v][1:-1, :-2]
+        # find the matrices without the unneeded columns and rows
+        u_iP1_j = self.__add_right_boundary(u_matrix[:, 1:], Field.u)
+        u_i_j = u_matrix
+        u_iM1_j = self.__add_left_boundary(u_matrix[:, :-1], Field.u)
+        u_i_jP1 = u_matrix[1:, :]
+        u_i_jM1 = u_matrix[:-1, :]
+
+        v_i_jP1 = self.__add_top_boundary(v_matrix, Field.v)[:, 1:]
+        v_iM1_jP1 = self.__add_top_boundary(v_matrix, Field.v)[:, :-1]
+        v_i_j = self.__add_bottom_boundary(v_matrix, Field.v)[:, 1:]
+        v_iM1_j = self.__add_bottom_boundary(v_matrix, Field.v)[:, :-1]
 
         # find matrices with half indexes
         u_iPh_j = (u_iP1_j + u_i_j) / 2
-        u_i_jPh = (u_i_jP1 + u_i_j) / 2
         u_iMh_j = (u_iM1_j + u_i_j) / 2
-        u_i_jMh = (u_i_jM1 + u_i_j) / 2
+        u_i_middle_j = (u_i_jP1 + u_i_jM1) / 2
+        u_i_jPh = self.__add_top_boundary(u_i_middle_j, Field.u)
+        u_i_jMh = self.__add_bottom_boundary(u_i_middle_j, Field.u)
 
         v_iMh_jP1 = (v_i_jP1 + v_iM1_jP1) / 2
         v_iMh_j = (v_i_j + v_iM1_j) / 2
@@ -87,77 +93,70 @@ class NavierStokesEquations:
         # final expression
         delta_y_multiplication = np.multiply(u_iPh_j, u_iPh_j)
         delta_y_multiplication -= np.multiply(u_iMh_j, u_iMh_j)
-        delta_y_multiplication = delta_y_multiplication.T
         delta_x_multiplication = np.multiply(u_i_jPh, v_iMh_jP1)
         delta_x_multiplication -= np.multiply(u_i_jMh, v_iMh_j)
-        non_linear_parameters_x = np.multiply(delta_y_multiplication, self.__delta_matrix[Delta.y]).T + \
-                                  np.multiply(delta_x_multiplication, self.__delta_matrix[Delta.x])
+        delta_x = self.__delta_matrix[Delta.x]
+        delta_x_middle = (delta_x[1:] + delta_x[:-1])/2
+        non_linear_parameters_x = np.multiply(delta_y_multiplication.T, self.__delta_matrix[Delta.y]).T + \
+                                  np.multiply(delta_x_multiplication, delta_x_middle)
 
-        return self.__add_all_boundaries(non_linear_parameters_x, Fields.u)
+        return non_linear_parameters_x
 
     def __non_linear_parameters_y(self):
         # P = plus  M = minus h = half
-        # find the matrices without the unneeded columns and rows
-        u_iP1_jM1 = self.__field_matrix[Fields.u][:-2, 2:]
-        u_iP1_j = self.__field_matrix[Fields.u][1:-1, 2:]
-        u_i_jM1 = self.__field_matrix[Fields.u][:-2, 1:-1]
-        u_i_j = self.__field_matrix[Fields.u][1:-1, 1:-1]
+        u_matrix = self.__fields_matrix[Field.u]
+        v_matrix = self.__fields_matrix[Field.v]
 
-        v_i_j = self.__field_matrix[Fields.v][1:-1, 1:-1]
-        v_iP1_j = self.__field_matrix[Fields.v][1:-1, 2:]
-        v_i_jP1 = self.__field_matrix[Fields.v][2:, 1:-1]
-        v_iM1_j = self.__field_matrix[Fields.v][1:-1, :-2]
-        v_i_jM1 = self.__field_matrix[Fields.v][:-2, 1:-1]
+        # find the matrices without the unneeded columns and rows
+        u_iP1_jM1 = self.__add_right_boundary(u_matrix, Field.u)[:-1, :]
+        u_iP1_j = self.__add_right_boundary(u_matrix, Field.u)[1:, :]
+        u_i_jM1 = self.__add_left_boundary(u_matrix, Field.u)[:-1, :]
+        u_i_j = self.__add_left_boundary(u_matrix, Field.u)[1:, :]
+
+        v_i_jP1 = self.__add_top_boundary(v_matrix[1:, :], Field.v)
+        v_i_j = v_matrix
+        v_i_jM1 = self.__add_bottom_boundary(v_matrix[:-1, :], Field.v)
+        v_iP1_j = v_matrix[:, 1:]
+        v_iM1_j = v_matrix[:, :-1]
 
         # find matrices with half indexes
         u_iP1_jMh = (u_iP1_jM1 + u_iP1_j) / 2
         u_i_jMh = (u_i_jM1 + u_i_j) / 2
 
-        v_iPh_j = (v_i_j + v_iP1_j) / 2
-        v_iMh_j = (v_i_j + v_iM1_j) / 2
         v_i_jPh = (v_i_j + v_i_jP1) / 2
         v_i_jMh = (v_i_j + v_i_jM1) / 2
+        v_middle_i_j = (v_iP1_j + v_iM1_j) / 2
+        v_iPh_j = self.__add_right_boundary(v_middle_i_j, Field.v)
+        v_iMh_j = self.__add_left_boundary(v_middle_i_j, Field.v)
 
         # final expression
-        non_linear_parameters_y = np.dot((np.dot(u_iP1_jMh, v_iPh_j) - np.dot(u_i_jMh, v_iMh_j)),
-                                         self.__delta_matrix[Delta.y]) + \
-                                  np.dot((np.dot(v_i_jPh, v_i_jPh) - np.dot(v_i_jMh, v_i_jMh)),
-                                         self.__delta_matrix[Delta.x])
+        delta_x_multiplication = np.multiply(v_i_jPh, v_i_jPh)
+        delta_x_multiplication -= np.multiply(v_i_jMh, v_i_jMh)
+        delta_y_multiplication = np.multiply(u_iP1_jMh, v_iPh_j)
+        delta_y_multiplication -= np.multiply(u_i_jMh, v_iMh_j)
+        delta_y = self.__delta_matrix[Delta.y]
+        delta_y_middle = (delta_y[1:] + delta_y[:-1])/2
+        non_linear_parameters_x = np.multiply(delta_y_multiplication.T, delta_y_middle).T + \
+                                  np.multiply(delta_x_multiplication, self.__delta_matrix[Delta.x])
 
-        return self.__add_all_boundaries(non_linear_parameters_y, Fields.v)
+        return non_linear_parameters_x
 
     def __pressure_terms_predicted_u(self):
         # P = plus
-        p_matrix_top = self.__boundaries.get_boundary(Orientation.top, Fields.p)
-        p_matrix_bottom = self.__boundaries.get_boundary(Orientation.bottom, Fields.p)
-        p_matrix_top_bottom_boundaries = \
-            np.concatenate(([p_matrix_bottom], self.__field_matrix[Fields.p], [p_matrix_top]), axis=0)
-        p_iP1_j = p_matrix_top_bottom_boundaries[:, 1:]
-        p_i_j = p_matrix_top_bottom_boundaries[:, :-1]
+        p_iP1_j = self.__fields_matrix[Field.p][:, 1:]
+        p_i_j = self.__fields_matrix[Field.p][:, :-1]
 
         results = p_iP1_j - p_i_j
-        delta_y_with_top_bottom_boundaries = \
-            np.concatenate(([1], self.__delta_matrix[Delta.y], [1]))
-        results = np.multiply(results.T, delta_y_with_top_bottom_boundaries).T
-        results = self.__add_left_boundary(results, Fields.u)
-        results = self.__add_right_boundary(results, Fields.u)
+        results = np.multiply(results.T, self.__delta_matrix[Delta.y]).T
         return results
 
     def __pressure_terms_predicted_v(self):
         # P = plus
-        p_matrix_left = np.array(self.__boundaries.get_boundary(Orientation.left, Fields.p)).T
-        p_matrix_right = np.array(self.__boundaries.get_boundary(Orientation.right, Fields.p)).T
-        p_matrix_left_right_boundaries = \
-            np.concatenate((p_matrix_left, self.__field_matrix[Fields.p], p_matrix_right), axis=1)
-        p_i_jP1 = p_matrix_left_right_boundaries[1:, :]
-        p_i_j = p_matrix_left_right_boundaries[:-1, :]
-
+        p_i_jP1 = self.__fields_matrix[Field.p][1:, :]
+        p_i_j = self.__fields_matrix[Field.p][:-1, :]
         results = p_i_jP1 - p_i_j
-        delta_x_with_left_right_boundaries = \
-            np.concatenate(([1], self.__delta_matrix[Delta.x], [1]))
-        results = np.multiply(results, delta_x_with_left_right_boundaries)
-        results = self.__add_top_boundary(results, Fields.u)
-        results = self.__add_bottom_boundary(results, Fields.u)
+
+        results = np.multiply(results, self.__delta_matrix[Delta.x])
         return results
 
     def __divergence_x(self, matrix, field):
@@ -180,96 +179,77 @@ class NavierStokesEquations:
 
     ###################################### Boundaries
 
-    def __add_left_boundary(self, matrix, field):
-        if field == Fields.p and self.__boundary_conditions_type == BoundaryConditionsType.neumann:
-            left_boundary = np.concatenate(([0], matrix[0], [0]))
+    def __add_left_boundary(self, matrix, field, with_top_bottom_boundaries=False):
+        if field == Field.p and self.__boundary_conditions_type == BoundaryConditionsType.neumann:
+            left_boundary = matrix.T[-1]
         else:
             left_boundary = self.__boundaries.get_boundary(Orientation.left, field)
-            left_boundary = np.concatenate(([0], left_boundary, [0]), axis=0)
+
+        if with_top_bottom_boundaries:
+            left_boundary = np.concatenate(([0], left_boundary, [0]))
+
         left_boundary = np.array([left_boundary]).T
         return np.append(left_boundary, matrix, axis=1)
 
-    def __add_right_boundary(self, matrix, field):
-        if field == Fields.p and self.boundary_conditions_type == BoundaryConditionsType.neumann:
-            right_boundary = np.concatenate(([0], matrix[-1], [0]))
+    def __add_right_boundary(self, matrix, field, with_top_bottom_boundaries=False):
+        if field == Field.p and self.__boundary_conditions_type == BoundaryConditionsType.neumann:
+            right_boundary = matrix.T[0]
         else:
             right_boundary = self.__boundaries.get_boundary(Orientation.right, field)
-            right_boundary = np.concatenate(([0], right_boundary, [0]), axis=0)
+
+        if with_top_bottom_boundaries:
+            right_boundary = np.concatenate(([0], right_boundary, [0]))
+
         right_boundary = np.array([right_boundary]).T
         return np.append(matrix, right_boundary, axis=1)
 
-    def __add_bottom_boundary(self, matrix, field):
-        if field == Fields.p and self.boundary_conditions_type == BoundaryConditionsType.neumann:
-            bottom_boundary = np.concatenate(([0], matrix.T[0], [0]))
+    def __add_bottom_boundary(self, matrix, field, with_left_right_boundaries=False):
+        if field == Field.p and self.__boundary_conditions_type == BoundaryConditionsType.neumann:
+            bottom_boundary = matrix[0]
         else:
             bottom_boundary = self.__boundaries.get_boundary(Orientation.bottom, field)
-            bottom_boundary = np.concatenate(([0], bottom_boundary, [0]), axis=0)
+
+        if with_left_right_boundaries:
+            bottom_boundary = np.concatenate(([0], bottom_boundary, [0]))
+
         return np.append([bottom_boundary], matrix, axis=0)
 
-    def __add_top_boundary(self, matrix, field):
-        if field == Fields.p and self.boundary_conditions_type == BoundaryConditionsType.neumann:
-            top_boundary = np.concatenate(([0], matrix.T[-1], [0]))
+    def __add_top_boundary(self, matrix, field, with_left_right_boundaries=False):
+        if field == Field.p and self.__boundary_conditions_type == BoundaryConditionsType.neumann:
+            top_boundary = matrix[-1]
         else:
             top_boundary = self.__boundaries.get_boundary(Orientation.top, field)
-            top_boundary = np.concatenate(([0], top_boundary, [0]), axis=0)
+
+        if with_left_right_boundaries:
+            top_boundary = np.concatenate(([0], top_boundary, [0]))
+
         return np.append(matrix, [top_boundary], axis=0)
 
     def __add_all_boundaries(self, matrix, field):
-        if field == Fields.p and self.boundary_conditions_type == BoundaryConditionsType.neumann:
-            left = np.array([matrix[0]]).T
-            right = np.array([matrix[-1]]).T
-            bottom = [np.concatenate(([0], matrix[0].T, [0]), axis=0)]
-            top = [np.concatenate(([0], matrix[-1].T, [0]), axis=0)]
-        else:
-            left = np.array([self.__boundaries.get_boundary(Orientation.left, field)]).T
-            right = np.array([self.__boundaries.get_boundary(Orientation.right, field)]).T
-            bottom = [np.concatenate(([0], self.__boundaries.get_boundary(Orientation.bottom, field), [0]), axis=0)]
-            top = [np.concatenate(([0], self.__boundaries.get_boundary(Orientation.top, field), [0]), axis=0)]
-
-        matrix = np.concatenate((left, matrix, right), axis=1)
-        matrix = np.concatenate((bottom, matrix, top), axis=0)
-        return matrix
-
-    def __add_top_bottom_boundaries(self, matrix, field, with_left_right_boundaries=False):
-        if with_left_right_boundaries:
-            top = [np.concatenate(([0], self.__boundaries.get_boundary(Orientation.top, field), [0]), axis=0)]
-            bottom = [np.concatenate(([0], self.__boundaries.get_boundary(Orientation.bottom, field), [0]), axis=0)]
-        else:
-            top = [self.__boundaries.get_boundary(Orientation.top, field)]
-            bottom = [self.__boundaries.get_boundary(Orientation.bottom, field)]
-        matrix = np.concatenate((bottom, matrix, top), axis=0)
-        return matrix
-
-    def __add_left_right_boundaries(self, matrix, field, with_top_bottom_boundaries=False):
-        if with_top_bottom_boundaries:
-            left = [np.concatenate(([0], self.__boundaries.get_boundary(Orientation.left, field), [0]), axis=0)]
-            right = [np.concatenate(([0], self.__boundaries.get_boundary(Orientation.right, field), [0]), axis=0)]
-        else:
-            left = [self.__boundaries.get_boundary(Orientation.top, field)]
-            right = [self.__boundaries.get_boundary(Orientation.right, field)]
-        left = np.array([left]).T
-        right = np.array([right]).T
-        matrix = np.concatenate((left, matrix, right), axis=1)
+        matrix = self.__add_top_boundary(matrix, field, with_left_right_boundaries=False)
+        matrix = self.__add_bottom_boundary(matrix, field, with_left_right_boundaries=False)
+        matrix = self.__add_left_boundary(matrix, field, with_top_bottom_boundaries=True)
+        matrix = self.__add_right_boundary(matrix, field, with_top_bottom_boundaries=True)
         return matrix
 
     ###################################### On Index Fields
 
     def __get_index_u_matrix(self):
-        left_boundary = np.array([self.__boundaries.get_boundary(Orientation.left, Fields.u)]).T
-        right_boundary = np.array([self.__boundaries.get_boundary(Orientation.right, Fields.u)]).T
-        index_u_matrix = np.concatenate((left_boundary, self.__field_matrix[Fields.u], right_boundary), axis=1)
+        left_boundary = np.array([self.__boundaries.get_boundary(Orientation.left, Field.u)]).T
+        right_boundary = np.array([self.__boundaries.get_boundary(Orientation.right, Field.u)]).T
+        index_u_matrix = np.concatenate((left_boundary, self.__fields_matrix[Field.u], right_boundary), axis=1)
         index_u_matrix = (index_u_matrix[1:, :] + index_u_matrix[:-1, :]) / 2
-        index_u_matrix = self.__add_bottom_boundary(index_u_matrix, Fields.u)
-        index_u_matrix = self.__add_top_boundary(index_u_matrix, Fields.u)
+        index_u_matrix = self.__add_bottom_boundary(index_u_matrix, Field.u, with_left_right_boundaries=True)
+        index_u_matrix = self.__add_top_boundary(index_u_matrix, Field.u, with_left_right_boundaries=True)
         return index_u_matrix
 
     def __get_index_v_matrix(self):
-        bottom_boundary = [self.__boundaries.get_boundary(Orientation.bottom, Fields.v)]
-        top_boundary = [self.__boundaries.get_boundary(Orientation.top, Fields.v)]
-        index_v_matrix = np.concatenate((bottom_boundary, self.__field_matrix[Fields.v], top_boundary), axis=0)
+        bottom_boundary = [self.__boundaries.get_boundary(Orientation.bottom, Field.v)]
+        top_boundary = [self.__boundaries.get_boundary(Orientation.top, Field.v)]
+        index_v_matrix = np.concatenate((bottom_boundary, self.__fields_matrix[Field.v], top_boundary), axis=0)
         index_v_matrix = (index_v_matrix[:, 1:] + index_v_matrix[:, :-1]) / 2
-        index_v_matrix = self.__add_left_boundary(index_v_matrix, Fields.v)
-        index_v_matrix = self.__add_right_boundary(index_v_matrix, Fields.v)
+        index_v_matrix = self.__add_left_boundary(index_v_matrix, Field.v, with_top_bottom_boundaries=True)
+        index_v_matrix = self.__add_right_boundary(index_v_matrix, Field.v, with_top_bottom_boundaries=True)
         return index_v_matrix
 
     ###################################### Data options
