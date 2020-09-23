@@ -34,9 +34,9 @@ if __name__ == "__main__":
 
     # plt.axes.set_aspect('equal')
     domain.quiver()
-    plt.pause(0.1)
+    plt.pause(0.5)
     for i in range(time):
         plt.cla()
         domain.next_step()
         domain.quiver()
-        plt.pause(0.1)
+        plt.pause(0.5)

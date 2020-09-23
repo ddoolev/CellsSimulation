@@ -19,3 +19,8 @@ class Orientation(enum.Enum):
     bottom = 2
     top = 3
     all = 4
+
+
+class BoundaryConditionsType(enum.Enum):
+    dirichlet = 0
+    neumann = 1
