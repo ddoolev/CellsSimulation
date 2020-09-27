@@ -38,7 +38,7 @@ class Simulation:
     def main_loop(self):
         self.axes.set_aspect('equal')
         # make the main loop run after all the cells grow
-        yield C.ENV.timeout(C.TIME_STEP / 1000)
+        yield C.ENV.timeout(C.DELTA_T / 1000)
         while True:
             plt.cla()
             for cell in self.cells:
@@ -52,7 +52,7 @@ class Simulation:
                 self.axes.add_line(cell_boundary)
 
             plt.pause(0.1)
-            yield C.ENV.timeout(C.TIME_STEP)
+            yield C.ENV.timeout(C.DELTA_T)
 
     def calculate_boundaries(self):
         for cell in self.cells:

@@ -74,7 +74,7 @@ class DefaultCell(Cell.Cell):
 
     def update(self):
         while True:
-            yield C.ENV.timeout(C.TIME_STEP)
+            yield C.ENV.timeout(C.DELTA_T)
             if self._should_grow():
                 self._grow()
                 if self._should_split():

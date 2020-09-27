@@ -6,7 +6,7 @@ from general_enums import Field, Delta, Orientation
 
 if __name__ == "__main__":
 
-    grid_size = 20
+    grid_size = 10
     time = 100000
 
     u_matrix = np.full((grid_size + 1, grid_size), 0)
@@ -15,7 +15,7 @@ if __name__ == "__main__":
     fields_matrix = {Field.u: u_matrix, Field.v: v_matrix, Field.p: p_matrix}
 
     delta = np.full(grid_size + 1, 1)
-    delta_matrix = {Delta.x: delta, Delta.y: delta}
+    delta_xy = {Delta.x: delta, Delta.y: delta}
 
     full_0 = np.full(grid_size + 1, 0)
     full_1 = np.full(grid_size + 1, 1)
@@ -30,7 +30,7 @@ if __name__ == "__main__":
                              Orientation.top: boundary_top,
                              Orientation.bottom: boundary_bottom})
 
-    domain = NavierStokesEquations(fields_matrix, delta_matrix, boundaries)
+    domain = NavierStokesEquations(fields_matrix, delta_xy, boundaries)
 
     # plt.axes.set_aspect('equal')
     domain.quiver()

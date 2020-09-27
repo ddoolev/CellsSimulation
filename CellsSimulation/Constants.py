@@ -4,6 +4,6 @@ import simpy
 RESOLUTION = 1
 
 Re = 1  # Reynolds number
-TIME_STEP = 1
+DELTA_T = 0.001
 
 ENV = simpy.Environment()
