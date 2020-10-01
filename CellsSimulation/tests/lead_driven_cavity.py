@@ -6,7 +6,7 @@ from general_enums import Field, Delta, Orientation
 
 if __name__ == "__main__":
 
-    grid_size = 10
+    grid_size = 9
     time = 100000
 
     u_matrix = np.full((grid_size + 1, grid_size), 0)
@@ -14,7 +14,7 @@ if __name__ == "__main__":
     p_matrix = np.full((grid_size + 1, grid_size + 1), 0)
     fields_matrix = {Field.u: u_matrix, Field.v: v_matrix, Field.p: p_matrix}
 
-    delta = np.full(grid_size + 1, 1)
+    delta = np.full(grid_size + 1, 1/(grid_size + 1))
     delta_xy = {Delta.x: delta, Delta.y: delta}
 
     full_0 = np.full(grid_size + 1, 0)
@@ -34,9 +34,9 @@ if __name__ == "__main__":
 
     # plt.axes.set_aspect('equal')
     domain.quiver()
-    plt.pause(0.5)
+    plt.pause(0.1)
     for i in range(time):
         plt.cla()
         domain.next_step()
         domain.quiver()
-        plt.pause(0.5)
+        plt.pause(0.1)

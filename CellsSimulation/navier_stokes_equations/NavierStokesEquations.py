@@ -2,7 +2,6 @@ import numpy as np
 from LaplaceOperator import LaplaceOperator
 import Constants as C
 import scipy.sparse as sparse
-from Boundaries import Boundaries
 import matplotlib.pyplot as plt
 from general_enums import Field, Delta, Orientation, BoundaryConditionsType
 
@@ -41,6 +40,7 @@ class NavierStokesEquations:
         self.__laplace_operator_predicted_u.multiply_operators_matrix(1 / C.Re)
 
         # add delta_x*delta_y/delta_t
+
         delta_x_half_grid = self.__create_half_grid(Delta.x)
         delta_y_half_grid = self.__create_half_grid(Delta.y)
 
@@ -54,7 +54,7 @@ class NavierStokesEquations:
 
         u_identity_matrix = np.multiply(u_identity_matrix, delta_x)
         u_identity_matrix = np.multiply(u_identity_matrix, delta_y)
-        u_identity_matrix = np.multiply(u_identity_matrix, -C.DELTA_T)
+        u_identity_matrix = np.multiply(u_identity_matrix, 1/-C.DELTA_T)
         u_identity_matrix = sparse.spdiags(u_identity_matrix, [0],
                                            u_matrix_side_length, u_matrix_side_length, format='csr')
 
@@ -66,7 +66,7 @@ class NavierStokesEquations:
                                                               Field.v,
                                                               BoundaryConditionsType.dirichlet)
 
-        self.__laplace_operator_predicted_v.multiply_operators_matrix(-1 / C.Re)
+        self.__laplace_operator_predicted_v.multiply_operators_matrix(1 / C.Re)
 
         # add delta_x*delta_y/delta_t
         delta_x_half_grid = self.__create_half_grid(Delta.x)
@@ -82,48 +82,85 @@ class NavierStokesEquations:
 
         v_identity_matrix = np.multiply(v_identity_matrix, delta_x)
         v_identity_matrix = np.multiply(v_identity_matrix, delta_y)
-        v_identity_matrix = np.multiply(v_identity_matrix, C.DELTA_T)
+        v_identity_matrix = np.multiply(v_identity_matrix, 1/-C.DELTA_T)
         v_identity_matrix = sparse.spdiags(v_identity_matrix, [0],
                                            v_matrix_side_length, v_matrix_side_length, format='csr')
 
         self.__laplace_operator_predicted_v.add_matrix_to_operators_matrix(v_identity_matrix)
 
     def next_step(self):
-        # calculate predicted u and v
+        predicted_u = self.__calculate_predicted_u()
+        predicted_v = self.__calculate_predicted_v()
+        p_prime = self.__calculate_p_prime(predicted_u, predicted_v)
+        self.__calculate_new_fields(p_prime, predicted_u, predicted_v)
+        self.__check_divergence(self.__fields_matrix[Field.u], self.__fields_matrix[Field.v])
 
-        right_side_predicted_u = -self.__pressure_terms_predicted_u() + \
-                                 self.__non_linear_parameters_x() - \
-                                 self.__fields_matrix[Field.u]
+    def __check_divergence(self, u, v):
+        u_divergence_x = self.__divergence_x_predicted_u(u)
+        v_divergence_y = self.__divergence_y_predicted_v(v)
+        matrix = u_divergence_x + v_divergence_y
+        print(matrix)
+        print("\n\n")
+
+    def __calculate_predicted_u(self):
+        pressure_terms = self.__pressure_terms_predicted_u()
+        divergence_t = self.__divergence_t_for_momentum_conservation_u()
+        non_linear = self.__non_linear_parameters_x()
+        right_side_predicted_u = pressure_terms - divergence_t + non_linear
         right_side_predicted_u = self.__add_all_boundaries(right_side_predicted_u, Field.u)
-
-        right_side_predicted_v = -self.__pressure_terms_predicted_v() + \
-                                 self.__non_linear_parameters_y() - \
-                                 self.__fields_matrix[Field.v]
-        right_side_predicted_v = self.__add_all_boundaries(right_side_predicted_v, Field.v)
-
         predicted_u = self.__laplace_operator_predicted_u.solve(right_side_predicted_u)
+        return predicted_u
+
+    def __calculate_predicted_v(self):
+        pressure_terms = self.__pressure_terms_predicted_v()
+        derivative_t = self.__derivative_t_for_momentum_conservation_v()
+        non_linear_parameters = self.__non_linear_parameters_y()
+        right_side_predicted_v = pressure_terms - derivative_t + non_linear_parameters
+        right_side_predicted_v = self.__add_all_boundaries(right_side_predicted_v, Field.v)
         predicted_v = self.__laplace_operator_predicted_v.solve(right_side_predicted_v)
+        return predicted_v
 
-        # remove boundaries
-        predicted_u = predicted_u[1:-1, 1:-1]
-        predicted_v = predicted_v[1:-1, 1:-1]
-
-        # calculate p prime
-        right_side_p_prime = self.__divergence_x_predicted_u(predicted_u) + \
-                             self.__divergence_y_predicted_v(predicted_v)
-        right_side_p_prime /= -self.__delta_t
+    def __calculate_p_prime(self, predicted_u, predicted_v):
+        predicted_u = self.__remove_matrix_boundaries(predicted_u, Orientation.all)
+        predicted_v = self.__remove_matrix_boundaries(predicted_v, Orientation.all)
+        divergence_x_predicted_u = self.__divergence_x_predicted_u(predicted_u)
+        divergence_y_predicted_v = self.__divergence_y_predicted_v(predicted_v)
+        right_side_p_prime = divergence_x_predicted_u + divergence_y_predicted_v
+        right_side_p_prime /= self.__delta_t
+        right_side_p_prime[0][0] = 0
         right_side_p_prime = self.__add_all_boundaries(right_side_p_prime, Field.p)
         p_prime = self.__laplace_operator_p_prime.solve(right_side_p_prime)
+        return p_prime
 
-        # calculate the new fields
-        p_prime = p_prime[1:-1, 1:-1]  # remove boundaries
-        self.__fields_matrix[Field.p] = p_prime + self.__fields_matrix[Field.p]
-        divergence_x_p_prime = self.__divergence_x_p_prime_for_u_field(p_prime)
-        self.__fields_matrix[Field.u] = self.__fields_matrix[Field.u] - \
-                                        np.multiply(divergence_x_p_prime, self.__delta_t)
-        divergence_y_p_prime = self.__divergence_y_p_prime_for_v_field(p_prime)
-        self.__fields_matrix[Field.v] = self.__fields_matrix[Field.v] - \
-                                        np.multiply(divergence_y_p_prime, self.__delta_t)
+    def __calculate_new_fields(self, p_prime, predicted_u, predicted_v):
+        predicted_u = self.__remove_matrix_boundaries_all(predicted_u)
+        predicted_v = self.__remove_matrix_boundaries_all(predicted_v)
+        p_prime = self.__remove_matrix_boundaries(p_prime, Orientation.all)
+        self.__fields_matrix[Field.p] = self.__fields_matrix[Field.p] + p_prime
+        gradient_x_p_prime = self.__gradient_x_p_prime_for_u_field(p_prime)
+        gradient_x_p_prime = np.multiply(gradient_x_p_prime, self.__delta_t)
+        self.__fields_matrix[Field.u] = predicted_u - gradient_x_p_prime
+        gradient_y_p_prime = self.__gradient_y_p_prime_for_v_field(p_prime)
+        gradient_y_p_prime = np.multiply(gradient_y_p_prime, self.__delta_t)
+        self.__fields_matrix[Field.v] = predicted_v - gradient_y_p_prime
+
+    def __divergence_t_for_momentum_conservation_u(self):
+        x_half_grid = self.__create_half_grid(Delta.x)
+        x_half_grid = self.__remove_array_boundaries_all(x_half_grid)
+        divergence_t = self.__fields_matrix[Field.u]
+        divergence_t = np.multiply(divergence_t, -1/self.__delta_t)
+        divergence_t = np.multiply(divergence_t.T, self.__delta_matrix[Delta.y]).T
+        divergence_t = np.multiply(divergence_t, x_half_grid)
+        return divergence_t
+
+    def __derivative_t_for_momentum_conservation_v(self):
+        y_half_grid = self.__create_half_grid(Delta.y)
+        y_half_grid = self.__remove_array_boundaries_all(y_half_grid)
+        divergence_v_delta_t = self.__fields_matrix[Field.v]
+        divergence_v_delta_t = np.multiply(divergence_v_delta_t, -1/self.__delta_t)
+        divergence_v_delta_t = np.multiply(divergence_v_delta_t.T, y_half_grid).T
+        divergence_v_delta_t = np.multiply(divergence_v_delta_t, self.__delta_matrix[Delta.x])
+        return divergence_v_delta_t
 
     def __non_linear_parameters_x(self):
         # P = plus  M = minus h = half
@@ -131,36 +168,43 @@ class NavierStokesEquations:
         v_matrix = self.__fields_matrix[Field.v]
 
         # find the matrices without the unneeded columns and rows
-        u_iP1_j = self.__add_right_boundary(u_matrix[:, 1:], Field.u)
+        u_iP1_j = self.__remove_matrix_boundaries_left(u_matrix)
+        u_iP1_j = self.__add_right_boundary(u_iP1_j, Field.u)
         u_i_j = u_matrix
-        u_iM1_j = self.__add_left_boundary(u_matrix[:, :-1], Field.u)
-        u_i_jP1 = u_matrix[1:, :]
-        u_i_jM1 = u_matrix[:-1, :]
+        u_iM1_j = self.__remove_matrix_boundaries_right(u_matrix)
+        u_iM1_j = self.__add_left_boundary(u_iM1_j, Field.u)
+        u_i_jP1 = self.__remove_matrix_boundaries_bottom(u_matrix)
+        u_i_jM1 = self.__remove_matrix_boundaries_top(u_matrix)
 
-        v_i_jP1 = self.__add_top_boundary(v_matrix, Field.v)[:, 1:]
-        v_iM1_jP1 = self.__add_top_boundary(v_matrix, Field.v)[:, :-1]
-        v_i_j = self.__add_bottom_boundary(v_matrix, Field.v)[:, 1:]
-        v_iM1_j = self.__add_bottom_boundary(v_matrix, Field.v)[:, :-1]
+        v_i_j = self.__add_top_boundary(v_matrix, Field.v)
+        v_i_j = self.__remove_matrix_boundaries_left(v_i_j)
+        v_iM1_j = self.__add_top_boundary(v_matrix, Field.v)
+        v_iM1_j = self.__remove_matrix_boundaries_right(v_iM1_j)
+        v_i_jM1 = self.__add_bottom_boundary(v_matrix, Field.v)
+        v_i_jM1 = self.__remove_matrix_boundaries_left(v_i_jM1)
+        v_iM1_jM1 = self.__add_bottom_boundary(v_matrix, Field.v)
+        v_iM1_jM1 = self.__remove_matrix_boundaries_right(v_iM1_jM1)
 
         # find matrices with half indexes
         u_iPh_j = (u_iP1_j + u_i_j) / 2
         u_iMh_j = (u_iM1_j + u_i_j) / 2
-        u_i_middle_j = (u_i_jP1 + u_i_jM1) / 2
-        u_i_jPh = self.__add_top_boundary(u_i_middle_j, Field.u)
-        u_i_jMh = self.__add_bottom_boundary(u_i_middle_j, Field.u)
+        u_i_jh = (u_i_jP1 + u_i_jM1) / 2
+        u_i_jPh = self.__add_top_boundary(u_i_jh, Field.u)
+        u_i_jMh = self.__add_bottom_boundary(u_i_jh, Field.u)
 
-        v_iMh_jP1 = (v_i_jP1 + v_iM1_jP1) / 2
-        v_iMh_j = (v_i_j + v_iM1_j) / 2
+        v_iMh_jP1 = (v_i_j + v_iM1_j) / 2
+        v_iMh_jM1 = (v_i_jM1 + v_iM1_jM1) / 2
 
         # final expression
         delta_y_multiplication = np.multiply(u_iPh_j, u_iPh_j)
         delta_y_multiplication -= np.multiply(u_iMh_j, u_iMh_j)
         delta_x_multiplication = np.multiply(u_i_jPh, v_iMh_jP1)
-        delta_x_multiplication -= np.multiply(u_i_jMh, v_iMh_j)
+        delta_x_multiplication -= np.multiply(u_i_jMh, v_iMh_jM1)
         delta_x = self.__delta_matrix[Delta.x]
-        delta_x_middle = (delta_x[1:] + delta_x[:-1]) / 2
+        delta_half_x = (self.__remove_array_boundaries_left(delta_x) +
+                        self.__remove_array_boundaries_right(delta_x)) / 2
         non_linear_parameters_x = np.multiply(delta_y_multiplication.T, self.__delta_matrix[Delta.y]).T + \
-                                  np.multiply(delta_x_multiplication, delta_x_middle)
+                                  np.multiply(delta_x_multiplication, delta_half_x)
 
         return non_linear_parameters_x
 
@@ -170,16 +214,22 @@ class NavierStokesEquations:
         v_matrix = self.__fields_matrix[Field.v]
 
         # find the matrices without the unneeded columns and rows
-        u_iP1_jM1 = self.__add_right_boundary(u_matrix, Field.u)[:-1, :]
-        u_iP1_j = self.__add_right_boundary(u_matrix, Field.u)[1:, :]
-        u_i_jM1 = self.__add_left_boundary(u_matrix, Field.u)[:-1, :]
-        u_i_j = self.__add_left_boundary(u_matrix, Field.u)[1:, :]
+        u_iP1_jM1 = self.__add_right_boundary(u_matrix, Field.u)
+        u_iP1_jM1 = self.__remove_matrix_boundaries_top(u_iP1_jM1)
+        u_iP1_j = self.__add_right_boundary(u_matrix, Field.u)
+        u_iP1_j = self.__remove_matrix_boundaries_bottom(u_iP1_j)
+        u_i_jM1 = self.__add_left_boundary(u_matrix, Field.u)
+        u_i_jM1 = self.__remove_matrix_boundaries_top(u_i_jM1)
+        u_i_j = self.__add_left_boundary(u_matrix, Field.u)
+        u_i_j = self.__remove_matrix_boundaries_bottom(u_i_j)
 
-        v_i_jP1 = self.__add_top_boundary(v_matrix[1:, :], Field.v)
+        v_i_jP1 = self.__remove_matrix_boundaries_bottom(v_matrix)
+        v_i_jP1 = self.__add_top_boundary(v_i_jP1, Field.v)
         v_i_j = v_matrix
-        v_i_jM1 = self.__add_bottom_boundary(v_matrix[:-1, :], Field.v)
-        v_iP1_j = v_matrix[:, 1:]
-        v_iM1_j = v_matrix[:, :-1]
+        v_i_jM1 = self.__remove_matrix_boundaries_top(v_matrix)
+        v_i_jM1 = self.__add_bottom_boundary(v_i_jM1, Field.v)
+        v_iP1_j = self.__remove_matrix_boundaries_left(v_matrix)
+        v_iM1_j = self.__remove_matrix_boundaries_right(v_matrix)
 
         # find matrices with half indexes
         u_iP1_jMh = (u_iP1_jM1 + u_iP1_j) / 2
@@ -197,11 +247,12 @@ class NavierStokesEquations:
         delta_y_multiplication = np.multiply(u_iP1_jMh, v_iPh_j)
         delta_y_multiplication -= np.multiply(u_i_jMh, v_iMh_j)
         delta_y = self.__delta_matrix[Delta.y]
-        delta_y_middle = (delta_y[1:] + delta_y[:-1]) / 2
-        non_linear_parameters_x = np.multiply(delta_y_multiplication.T, delta_y_middle).T + \
+        delta_half_y = (self.__remove_array_boundaries_left(delta_y) +
+                        self.__remove_array_boundaries_right(delta_y)) / 2
+        non_linear_parameters_y = np.multiply(delta_y_multiplication.T, delta_half_y).T + \
                                   np.multiply(delta_x_multiplication, self.__delta_matrix[Delta.x])
 
-        return non_linear_parameters_x
+        return non_linear_parameters_y
 
     def __pressure_terms_predicted_u(self):
         # P = plus
@@ -220,13 +271,12 @@ class NavierStokesEquations:
         results = np.multiply(results, self.__delta_matrix[Delta.x])
         return results
 
-    def __divergence_x_p_prime_for_u_field(self, p_prime):
+    def __gradient_x_p_prime_for_u_field(self, p_prime):
         # P = plus
         p_prime_iP1_j = p_prime[:, 1:]
         p_prime_i_j = p_prime[:, :-1]
         half_grid_x = self.__create_half_grid(Delta.x)[1:-1]
-        results = (p_prime_iP1_j - p_prime_i_j)
-        results /= half_grid_x
+        results = (p_prime_iP1_j - p_prime_i_j) / half_grid_x
         return results
 
     def __divergence_x_predicted_u(self, predicted_u):
@@ -236,7 +286,7 @@ class NavierStokesEquations:
         results = (predicted_u_iP1_j - predicted_u_i_j) / self.__delta_matrix[Delta.x]
         return results
 
-    def __divergence_y_p_prime_for_v_field(self, p_prime):
+    def __gradient_y_p_prime_for_v_field(self, p_prime):
         # P = plus
         p_prime_i_jP1 = p_prime[1:, :]
         p_prime_i_j = p_prime[:-1, :]
@@ -262,44 +312,32 @@ class NavierStokesEquations:
     ###################################### Boundaries
 
     def __add_left_boundary(self, matrix, field, with_top_bottom_boundaries=False):
-        if field == Field.p and self.__boundary_conditions_type == BoundaryConditionsType.neumann:
-            left_boundary = matrix.T[-1]
-        else:
-            left_boundary = self.__boundaries.get_boundary(Orientation.left, field)
-            if with_top_bottom_boundaries:
-                left_boundary = np.concatenate(([0], left_boundary, [0]))
+        left_boundary = self.__boundaries.get_boundary(Orientation.left, field)
+        if with_top_bottom_boundaries:
+            left_boundary = np.concatenate(([0], left_boundary, [0]))
 
         left_boundary = np.array([left_boundary]).T
         return np.append(left_boundary, matrix, axis=1)
 
     def __add_right_boundary(self, matrix, field, with_top_bottom_boundaries=False):
-        if field == Field.p and self.__boundary_conditions_type == BoundaryConditionsType.neumann:
-            right_boundary = matrix.T[0]
-        else:
-            right_boundary = self.__boundaries.get_boundary(Orientation.right, field)
-            if with_top_bottom_boundaries:
-                right_boundary = np.concatenate(([0], right_boundary, [0]))
+        right_boundary = self.__boundaries.get_boundary(Orientation.right, field)
+        if with_top_bottom_boundaries:
+            right_boundary = np.concatenate(([0], right_boundary, [0]))
 
         right_boundary = np.array([right_boundary]).T
         return np.append(matrix, right_boundary, axis=1)
 
     def __add_bottom_boundary(self, matrix, field, with_left_right_boundaries=False):
-        if field == Field.p and self.__boundary_conditions_type == BoundaryConditionsType.neumann:
-            bottom_boundary = matrix[0]
-        else:
-            bottom_boundary = self.__boundaries.get_boundary(Orientation.bottom, field)
-            if with_left_right_boundaries:
-                bottom_boundary = np.concatenate(([0], bottom_boundary, [0]))
+        bottom_boundary = self.__boundaries.get_boundary(Orientation.bottom, field)
+        if with_left_right_boundaries:
+            bottom_boundary = np.concatenate(([0], bottom_boundary, [0]))
 
         return np.append([bottom_boundary], matrix, axis=0)
 
     def __add_top_boundary(self, matrix, field, with_left_right_boundaries=False):
-        if field == Field.p and self.__boundary_conditions_type == BoundaryConditionsType.neumann:
-            top_boundary = matrix[-1]
-        else:
-            top_boundary = self.__boundaries.get_boundary(Orientation.top, field)
-            if with_left_right_boundaries:
-                top_boundary = np.concatenate(([0], top_boundary, [0]))
+        top_boundary = self.__boundaries.get_boundary(Orientation.top, field)
+        if with_left_right_boundaries:
+            top_boundary = np.concatenate(([0], top_boundary, [0]))
 
         return np.append(matrix, [top_boundary], axis=0)
 
@@ -309,6 +347,50 @@ class NavierStokesEquations:
         matrix = self.__add_left_boundary(matrix, field, with_top_bottom_boundaries=True)
         matrix = self.__add_right_boundary(matrix, field, with_top_bottom_boundaries=True)
         return matrix
+
+    @staticmethod
+    def __remove_matrix_boundaries(matrix, orientation):
+        remove_boundary = {
+            Orientation.top: NavierStokesEquations.__remove_matrix_boundaries_top(matrix),
+            Orientation.bottom: NavierStokesEquations.__remove_matrix_boundaries_bottom(matrix),
+            Orientation.left: NavierStokesEquations.__remove_matrix_boundaries_left(matrix),
+            Orientation.right: NavierStokesEquations.__remove_matrix_boundaries_right(matrix),
+            Orientation.all: NavierStokesEquations.__remove_matrix_boundaries_all(matrix)
+        }
+
+        return remove_boundary.get(orientation)
+
+    @staticmethod
+    def __remove_matrix_boundaries_top(matrix):
+        return matrix[:-1, :]
+
+    @staticmethod
+    def __remove_matrix_boundaries_bottom(matrix):
+        return matrix[1:, :]
+
+    @staticmethod
+    def __remove_matrix_boundaries_left(matrix):
+        return matrix[:, 1:]
+
+    @staticmethod
+    def __remove_matrix_boundaries_right(matrix):
+        return matrix[:, :-1]
+
+    @staticmethod
+    def __remove_matrix_boundaries_all(matrix):
+        return matrix[1:-1, 1:-1]
+
+    @staticmethod
+    def __remove_array_boundaries_all(array):
+        return array[1:-1]
+
+    @staticmethod
+    def __remove_array_boundaries_left(array):
+        return array[1:]
+
+    @staticmethod
+    def __remove_array_boundaries_right(array):
+        return array[:-1]
 
     ###################################### On Index Fields
 

@@ -14,7 +14,7 @@ class LaplaceOperator:
         self.__operators_matrix_updated_flag = True
         self.__field = field
         if field == Field.all:
-            raise TypeError("Field can't be of type 'All'")
+            raise TypeError("Field can't be of type 'all'")
         self.__operators_matrix = \
             self.__create_laplace_operators_matrix()
 
@@ -65,24 +65,26 @@ class LaplaceOperator:
         # P=plus, M=minus, h=half
         x_index = i % self.__grid_length_x - 1
         y_index = i // self.__grid_length_x - 1
+        x_index_half_grid = x_index + 1
+        y_index_half_grid = y_index + 1
         delta_half_x = self.__create_half_grid(self.__delta_x)
         delta_half_y = self.__create_half_grid(self.__delta_y)
 
         if self.__field == Field.u:
-            coe_i_jM1 = delta_half_x[x_index] / delta_half_y[y_index - 1]
+            coe_i_jM1 = delta_half_x[x_index_half_grid] / delta_half_y[y_index_half_grid - 1]
             coe_iM1_j = self.__delta_y[y_index] / self.__delta_x[x_index - 1]
             coe_iP1_j = self.__delta_y[y_index] / self.__delta_x[x_index]
-            coe_i_jP1 = delta_half_x[x_index] / delta_half_y[y_index]
+            coe_i_jP1 = delta_half_x[x_index_half_grid] / delta_half_y[y_index_half_grid]
         elif self.__field == Field.v:
             coe_i_jM1 = self.__delta_x[x_index] / self.__delta_y[y_index - 1]
-            coe_iM1_j = delta_half_y[y_index] / delta_half_x[x_index - 1]
-            coe_iP1_j = delta_half_y[y_index] / delta_half_x[x_index]
+            coe_iM1_j = delta_half_y[y_index_half_grid] / delta_half_x[x_index_half_grid - 1]
+            coe_iP1_j = delta_half_y[y_index_half_grid] / delta_half_x[x_index_half_grid]
             coe_i_jP1 = self.__delta_x[x_index] / self.__delta_y[y_index]
         else:  # self.__field == Field.p
-            coe_i_jM1 = self.__delta_x[x_index] / delta_half_y[y_index]
-            coe_iM1_j = self.__delta_y[y_index] / delta_half_x[x_index - 1]
-            coe_iP1_j = self.__delta_y[y_index] / delta_half_x[x_index]
-            coe_i_jP1 = self.__delta_x[x_index] / delta_half_y[y_index]
+            coe_i_jM1 = self.__delta_x[x_index] / delta_half_y[y_index_half_grid - 1]
+            coe_iM1_j = self.__delta_y[y_index] / delta_half_x[x_index_half_grid - 1]
+            coe_iP1_j = self.__delta_y[y_index] / delta_half_x[x_index_half_grid]
+            coe_i_jP1 = self.__delta_x[x_index] / delta_half_y[y_index_half_grid]
 
         coe_i_j = -(coe_i_jM1 + coe_iM1_j + coe_iP1_j + coe_i_jP1)
 
@@ -190,15 +192,13 @@ class LaplaceOperator:
 
     def __check_operators_matrix_update(self):
         if self.__operators_matrix_updated_flag:
-            self.__print_matrix(self.__operators_matrix.toarray())
-            self.__rearrange_operators_matrix_boundaries()
+            self.__redo_operators_matrix_boundaries()
             if self.__boundary_condition_type == BoundaryConditionsType.neumann:
                 self.__create_corner_dirichlet_for_neumann()
-            self.__print_matrix(self.__operators_matrix.toarray())
             self.__lu_operator = sla.splu(self.__operators_matrix)
             self.__operators_matrix_updated_flag = False
 
-    def __rearrange_operators_matrix_boundaries(self):
+    def __redo_operators_matrix_boundaries(self):
         num_of_points_in_matrix = self.__grid_length_x * self.__grid_length_y
         for i in range(self.__grid_length_x):
             self.__operators_matrix[i] = self.__create_boundary_vector(Orientation.top, i)

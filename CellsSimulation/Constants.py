@@ -3,7 +3,7 @@ import simpy
 # The higher it is, the more accurate the simulation, and the longer it will take
 RESOLUTION = 1
 
-Re = 1  # Reynolds number
+Re = 0.001  # Reynolds number
 DELTA_T = 0.001
 
 ENV = simpy.Environment()
