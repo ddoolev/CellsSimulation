@@ -1,5 +1,5 @@
 import enum
-from general_enums import Field
+from general_enums import Field, Orientation
 
 
 class BoundaryConditionsType(enum.Enum):
@@ -27,13 +27,66 @@ class Boundaries:
         else:
             self.__boundaries[orientation][field] = boundary
 
-    # def add_top_bottom(self, matrix, field, with_left_right_boundaries=False):
-    #     if with_left_right_boundaries:
-    #         top = [np.concatenate(([0], self.get_boundary(Orientation.top, field), [0]), axis=0)]
-    #         bottom = [np.concatenate(([0], self.get_boundary(Orientation.bottom, field), [0]), axis=0)]
-    #     else:
-    #         top = [self.get_boundary(Orientation.top, field)]
-    #         bottom = [self.get_boundary(Orientation.bottom, field)]
-    #     matrix = np.concatenate((bottom, matrix, top), axis=0)
-    #     return matrix
+    @staticmethod
+    def remove_boundaries(array, orientation):
+        if array.ndim == 1:
+            return Boundaries.__remove_array_boundaries(array, orientation)
+        elif array.ndim == 2:
+            return Boundaries.__remove_matrix_boundaries(array, orientation)
+        else:
+            raise TypeError("Can not handle array with more than 2 dimensions")
+
+    @staticmethod
+    def __remove_matrix_boundaries(matrix, orientation):
+        remove_boundary = {
+            Orientation.top: Boundaries.__remove_matrix_boundaries_top(matrix),
+            Orientation.bottom: Boundaries.__remove_matrix_boundaries_bottom(matrix),
+            Orientation.left: Boundaries.__remove_matrix_boundaries_left(matrix),
+            Orientation.right: Boundaries.__remove_matrix_boundaries_right(matrix),
+            Orientation.all: Boundaries.__remove_matrix_boundaries_all(matrix)
+        }
+
+        return remove_boundary.get(orientation)
+
+    @staticmethod
+    def __remove_array_boundaries(array, orientation):
+        remove_boundary = {
+            Orientation.left: Boundaries.__remove_array_boundaries_left(array),
+            Orientation.right: Boundaries.__remove_array_boundaries_right(array),
+            Orientation.all: Boundaries.__remove_array_boundaries_all(array)
+        }
+
+        return remove_boundary.get(orientation)
+
+    @staticmethod
+    def __remove_matrix_boundaries_top(matrix):
+        return matrix[:-1, :]
+
+    @staticmethod
+    def __remove_matrix_boundaries_bottom(matrix):
+        return matrix[1:, :]
+
+    @staticmethod
+    def __remove_matrix_boundaries_left(matrix):
+        return matrix[:, 1:]
+
+    @staticmethod
+    def __remove_matrix_boundaries_right(matrix):
+        return matrix[:, :-1]
+
+    @staticmethod
+    def __remove_matrix_boundaries_all(matrix):
+        return matrix[1:-1, 1:-1]
+
+    @staticmethod
+    def __remove_array_boundaries_all(array):
+        return array[1:-1]
+
+    @staticmethod
+    def __remove_array_boundaries_left(array):
+        return array[1:]
+
+    @staticmethod
+    def __remove_array_boundaries_right(array):
+        return array[:-1]
 
