@@ -12,10 +12,6 @@ class WarningsStrings:
 
 
 class Boundaries:
-    # __u: Dict[str:np.array]
-    # __v: Dict[str:np.array]
-    # __p: Dict[str:np.array]
-    # __boundary_conditions_type: BoundaryConditionsType
 
     def __init__(self, boundaries):
         self.__boundaries = boundaries
