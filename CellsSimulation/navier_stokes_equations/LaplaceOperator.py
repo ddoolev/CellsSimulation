@@ -226,20 +226,7 @@ class LaplaceOperator:
         self.__operators_matrix_updated_flag = True
 
     def __multiply_operators_matrix_by_parameter(self, multiplier):
-        multiplier_array = np.empty(0)
-
-        # boundary should not be multiplied
-        top_bottom_block_multiplier = np.full([self.__grid_length_x], 1)
-        general_block_multiplier = np.concatenate(([1], np.full([self.__grid_length_x - 2], multiplier), [1]))
-
-        # make the array
-        multiplier_array = np.append(multiplier_array, top_bottom_block_multiplier)
-        num_of_general_blocks = self.__grid_length_y - 2
-        for i in range(num_of_general_blocks):
-            multiplier_array = np.append(multiplier_array, general_block_multiplier)
-        multiplier_array = np.append(multiplier_array, top_bottom_block_multiplier)
-
-        self.__operators_matrix = self.__operators_matrix.multiply(multiplier_array)
+        self.__operators_matrix = self.__operators_matrix.multiply(multiplier)
 
     def __multiply_operators_matrix_by_array(self, multiplier, transpose=False):
         if transpose:

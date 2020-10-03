@@ -3,9 +3,11 @@ from Boundaries import Boundaries
 from NavierStokesEquations import NavierStokesEquations
 import matplotlib.pyplot as plt
 from general_enums import Field, Delta, Orientation
+import Constants as C
 
 if __name__ == "__main__":
 
+    # change constants
     grid_size = 9
     time = 100000
 
@@ -34,9 +36,9 @@ if __name__ == "__main__":
 
     # plt.axes.set_aspect('equal')
     domain.quiver()
-    plt.pause(0.1)
+    plt.pause(0.5)
     for i in range(time):
         plt.cla()
         domain.next_step()
         domain.quiver()
-        plt.pause(0.1)
+        plt.pause(0.5)

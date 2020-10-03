@@ -338,3 +338,5 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+!/CellsSimulation/Constants.py
+!/CellsSimulation/tests/simple_test.py

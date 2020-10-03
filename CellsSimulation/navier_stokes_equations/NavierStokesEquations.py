@@ -49,12 +49,12 @@ class NavierStokesEquations:
         u_identity_matrix = np.full(u_matrix_side_length, 1)
 
         delta_x = np.concatenate(([0], delta_x_half_grid[1:-1], [0]))
-        delta_x = np.tile(delta_x, (len(delta_y_half_grid) + 1))
+        delta_x = np.tile(delta_x, (len(self.__delta_matrix[Delta.y]) + 2))
         delta_y = np.concatenate(([0], self.__delta_matrix[Delta.y], [0]))
-        delta_y = np.tile(delta_y, (len(self.__delta_matrix[Delta.x]) + 1))
+        delta_y = np.repeat(delta_y, len(delta_x_half_grid))
 
         u_identity_matrix = np.multiply(u_identity_matrix, delta_x)
-        u_identity_matrix = np.multiply(u_identity_matrix, delta_y)
+        u_identity_matrix = np.multiply(u_identity_matrix.T, delta_y).T
         u_identity_matrix = np.multiply(u_identity_matrix, 1/-C.DELTA_T)
         u_identity_matrix = sparse.spdiags(u_identity_matrix, [0],
                                            u_matrix_side_length, u_matrix_side_length, format='csr')
@@ -77,9 +77,9 @@ class NavierStokesEquations:
         v_identity_matrix = np.full(v_matrix_side_length, 1)
 
         delta_x = np.concatenate(([0], self.__delta_matrix[Delta.x], [0]))
-        delta_x = np.tile(delta_x, (len(self.__delta_matrix[Delta.y]) + 1))
+        delta_x = np.tile(delta_x, len(delta_x_half_grid))
         delta_y = np.concatenate(([0], delta_y_half_grid[1:-1], [0]))
-        delta_y = np.tile(delta_y, (len(delta_x_half_grid) + 1))
+        delta_y = np.repeat(delta_y, (len(self.__delta_matrix[Delta.x]) + 2))
 
         v_identity_matrix = np.multiply(v_identity_matrix, delta_x)
         v_identity_matrix = np.multiply(v_identity_matrix, delta_y)
