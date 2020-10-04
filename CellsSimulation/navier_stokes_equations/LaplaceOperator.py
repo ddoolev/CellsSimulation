@@ -81,10 +81,10 @@ class LaplaceOperator:
             coe_iP1_j = delta_half_y[y_index_half_grid] / delta_half_x[x_index_half_grid]
             coe_i_jP1 = self.__delta_x[x_index] / self.__delta_y[y_index]
         else:  # self.__field == Field.p
-            coe_i_jM1 = self.__delta_x[x_index] / delta_half_y[y_index_half_grid - 1]
-            coe_iM1_j = self.__delta_y[y_index] / delta_half_x[x_index_half_grid - 1]
-            coe_iP1_j = self.__delta_y[y_index] / delta_half_x[x_index_half_grid]
-            coe_i_jP1 = self.__delta_x[x_index] / delta_half_y[y_index_half_grid]
+            coe_i_jM1 = 1 / delta_half_y[y_index_half_grid - 1] ** 2
+            coe_iM1_j = 1 / delta_half_x[x_index_half_grid - 1] ** 2
+            coe_iP1_j = 1 / delta_half_x[x_index_half_grid] ** 2
+            coe_i_jP1 = 1 / delta_half_y[y_index_half_grid] ** 2
 
         coe_i_j = -(coe_i_jM1 + coe_iM1_j + coe_iP1_j + coe_i_jP1)
 

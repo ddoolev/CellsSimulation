@@ -8,7 +8,7 @@ import Constants as C
 if __name__ == "__main__":
 
     # change constants
-    grid_size = 9
+    grid_size = 50
     time = 100000
 
     u_matrix = np.full((grid_size + 1, grid_size), 0)
