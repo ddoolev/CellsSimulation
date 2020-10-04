@@ -100,23 +100,23 @@ class NavierStokesEquations:
         u_divergence_x = self.__divergence_x_predicted_u(u)
         v_divergence_y = self.__divergence_y_predicted_v(v)
         matrix = u_divergence_x + v_divergence_y
-        print(matrix)
+        print(matrix.max())
         print("\n\n")
 
     def __calculate_predicted_u(self):
-        pressure_terms = self.__pressure_terms_predicted_u()
-        divergence_t = self.__divergence_t_for_momentum_conservation_u()
+        gradient_p = self.__gradient_p_predicted_u()
+        derivative_t = self.__derivative_t_for_momentum_conservation_u()
         non_linear = self.__non_linear_parameters_x()
-        right_side_predicted_u = pressure_terms - divergence_t + non_linear
+        right_side_predicted_u = gradient_p - derivative_t + non_linear
         right_side_predicted_u = self.__add_all_boundaries(right_side_predicted_u, Field.u)
         predicted_u = self.__laplace_operator_predicted_u.solve(right_side_predicted_u)
         return predicted_u
 
     def __calculate_predicted_v(self):
-        pressure_terms = self.__pressure_terms_predicted_v()
+        gradient_p = self.__gradient_p_predicted_v()
         derivative_t = self.__derivative_t_for_momentum_conservation_v()
         non_linear_parameters = self.__non_linear_parameters_y()
-        right_side_predicted_v = pressure_terms - derivative_t + non_linear_parameters
+        right_side_predicted_v = gradient_p - derivative_t + non_linear_parameters
         right_side_predicted_v = self.__add_all_boundaries(right_side_predicted_v, Field.v)
         predicted_v = self.__laplace_operator_predicted_v.solve(right_side_predicted_v)
         return predicted_v
@@ -145,7 +145,7 @@ class NavierStokesEquations:
         gradient_y_p_prime = np.multiply(gradient_y_p_prime, self.__delta_t)
         self.__fields_matrix[Field.v] = predicted_v - gradient_y_p_prime
 
-    def __divergence_t_for_momentum_conservation_u(self):
+    def __derivative_t_for_momentum_conservation_u(self):
         x_half_grid = self.__create_half_grid(Delta.x)
         x_half_grid = Boundaries.remove_boundaries(x_half_grid, Orientation.all)
         divergence_t = self.__fields_matrix[Field.u]
@@ -255,7 +255,7 @@ class NavierStokesEquations:
 
         return non_linear_parameters_y
 
-    def __pressure_terms_predicted_u(self):
+    def __gradient_p_predicted_u(self):
         # P = plus
         p_iP1_j = self.__fields_matrix[Field.p][:, 1:]
         p_i_j = self.__fields_matrix[Field.p][:, :-1]
@@ -264,7 +264,7 @@ class NavierStokesEquations:
         results = np.multiply(results.T, self.__delta_matrix[Delta.y]).T
         return results
 
-    def __pressure_terms_predicted_v(self):
+    def __gradient_p_predicted_v(self):
         # P = plus
         p_i_jP1 = self.__fields_matrix[Field.p][1:, :]
         p_i_j = self.__fields_matrix[Field.p][:-1, :]

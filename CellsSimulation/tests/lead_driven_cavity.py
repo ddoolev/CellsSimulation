@@ -3,7 +3,6 @@ from Boundaries import Boundaries
 from NavierStokesEquations import NavierStokesEquations
 import matplotlib.pyplot as plt
 from general_enums import Field, Delta, Orientation
-import Constants as C
 
 if __name__ == "__main__":
 
