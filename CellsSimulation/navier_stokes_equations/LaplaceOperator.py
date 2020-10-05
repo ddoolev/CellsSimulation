@@ -202,7 +202,6 @@ class LaplaceOperator:
         num_of_points_in_matrix = self.__grid_length_x * self.__grid_length_y
         for i in range(self.__grid_length_x):
             self.__operators_matrix[i] = self.__create_boundary_vector(Orientation.top, i)
-
         for i in range(self.__grid_length_x,
                        num_of_points_in_matrix - self.__grid_length_x,
                        self.__grid_length_x):
@@ -216,13 +215,15 @@ class LaplaceOperator:
 
     ###################################### operations on operators matrix
 
-    # TODO: make the function work for single values, arrays and matrix
-    # TODO: add possibility to change boundaries, maybe add warnings
     def multiply_operators_matrix(self, multiplier, transpose=False):
         if isinstance(multiplier, numbers.Number):
             self.__multiply_operators_matrix_by_parameter(multiplier)
-        elif isinstance(multiplier, list):
-            self.__multiply_operators_matrix_by_array(multiplier, transpose)
+        elif isinstance(multiplier, np.ndarray):
+            if multiplier.ndim == 1:
+                self.__multiply_operators_matrix_by_array(multiplier, transpose)
+            elif multiplier.ndim == 2:
+                self.__multiply_operators_matrix_by_matrix(multiplier)
+
         self.__operators_matrix_updated_flag = True
 
     def __multiply_operators_matrix_by_parameter(self, multiplier):
@@ -233,6 +234,9 @@ class LaplaceOperator:
             self.__operators_matrix = (self.__operators_matrix.T.multiply(multiplier)).T
         else:
             self.__operators_matrix = self.__operators_matrix.multiply(multiplier)
+
+    def __multiply_operators_matrix_by_matrix(self, multiplier):
+        self.__operators_matrix = self.__operators_matrix.multiply(multiplier)
 
     # TODO: make the function work for single values, arrays and matrix
     # TODO: add possibility to change boundaries, maybe add warnings

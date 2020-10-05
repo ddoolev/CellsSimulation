@@ -1,5 +1,6 @@
 import enum
 from general_enums import Field, Orientation
+import numpy as np
 
 
 class BoundaryConditionsType(enum.Enum):
@@ -89,4 +90,60 @@ class Boundaries:
     @staticmethod
     def __remove_array_boundaries_right(array):
         return array[:-1]
+
+    @staticmethod
+    def add_boundaries(matrix, boundaries, field, orientation, with_side_boundaries=False):
+        if orientation == Orientation.all:
+            return Boundaries.__add_all_boundaries(matrix, boundaries, field)
+        else:
+            add_boundaries_function = {
+                Orientation.left: Boundaries.__add_left_boundary,
+                Orientation.right: Boundaries.__add_right_boundary,
+                Orientation.top: Boundaries.__add_top_boundary,
+                Orientation.bottom: Boundaries.__add_bottom_boundary,
+            }
+            function = add_boundaries_function.get(orientation)
+            return function(matrix, boundaries, field, with_side_boundaries)
+
+    @staticmethod
+    def __add_left_boundary(matrix, boundaries, field, with_top_bottom_boundaries):
+        left_boundary = boundaries.get_boundary(Orientation.left, field)
+        if with_top_bottom_boundaries:
+            left_boundary = np.concatenate(([0], left_boundary, [0]))
+
+        left_boundary = np.array([left_boundary]).T
+        return np.append(left_boundary, matrix, axis=1)
+
+    @staticmethod
+    def __add_right_boundary(matrix, boundaries, field, with_top_bottom_boundaries):
+        right_boundary = boundaries.get_boundary(Orientation.right, field)
+        if with_top_bottom_boundaries:
+            right_boundary = np.concatenate(([0], right_boundary, [0]))
+
+        right_boundary = np.array([right_boundary]).T
+        return np.append(matrix, right_boundary, axis=1)
+
+    @staticmethod
+    def __add_bottom_boundary(matrix, boundaries, field, with_left_right_boundaries):
+        bottom_boundary = boundaries.get_boundary(Orientation.bottom, field)
+        if with_left_right_boundaries:
+            bottom_boundary = np.concatenate(([0], bottom_boundary, [0]))
+
+        return np.append([bottom_boundary], matrix, axis=0)
+
+    @staticmethod
+    def __add_top_boundary(matrix, boundaries, field, with_left_right_boundaries):
+        top_boundary = boundaries.get_boundary(Orientation.top, field)
+        if with_left_right_boundaries:
+            top_boundary = np.concatenate(([0], top_boundary, [0]))
+
+        return np.append(matrix, [top_boundary], axis=0)
+
+    @staticmethod
+    def __add_all_boundaries(matrix, boundaries, field):
+        matrix = Boundaries.__add_top_boundary(matrix, boundaries, field, False)
+        matrix = Boundaries.__add_bottom_boundary(matrix, boundaries, field, False)
+        matrix = Boundaries.__add_left_boundary(matrix, boundaries, field, True)
+        matrix = Boundaries.__add_right_boundary(matrix, boundaries, field, True)
+        return matrix
 
