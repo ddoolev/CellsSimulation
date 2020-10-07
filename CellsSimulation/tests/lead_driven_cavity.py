@@ -2,12 +2,13 @@ import numpy as np
 from Boundaries import Boundaries
 from NavierStokesEquations import NavierStokesEquations
 import matplotlib.pyplot as plt
-from general_enums import Field, Delta, Orientation
+from general_enums import Field, Orientation
+from Deltas import Delta2
 
 if __name__ == "__main__":
 
     # change constants
-    grid_size = 50
+    grid_size = 10
     time = 100000
 
     u_matrix = np.full((grid_size + 1, grid_size), 0)
@@ -16,7 +17,7 @@ if __name__ == "__main__":
     fields_matrix = {Field.u: u_matrix, Field.v: v_matrix, Field.p: p_matrix}
 
     delta = np.full(grid_size + 1, 1/(grid_size + 1))
-    delta_xy = {Delta.x: delta, Delta.y: delta}
+    delta_xy = {Delta2.x: delta, Delta2.y: delta}
 
     full_0 = np.full(grid_size + 1, 0)
     full_1 = np.full(grid_size + 1, 1)

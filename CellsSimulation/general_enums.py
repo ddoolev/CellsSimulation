@@ -8,11 +8,6 @@ class Field(enum.Enum):
     all = 3
 
 
-class Delta(enum.Enum):
-    x = 0
-    y = 1
-
-
 class Orientation(enum.Enum):
     left = 0
     right = 1

@@ -1,9 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.sparse as sp
 
-u_matrix = [[1,2],[3,4]]
-v_matrix = [[1,2],[3,4]]
 
-print(np.multiply(u_matrix,v_matrix))
+matrix = [[1,2],[3,4],[5,6]]
+matrix = sp.csr_matrix(matrix)
+
+print(matrix.get_shape == 2)
 
 plt.show()

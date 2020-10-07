@@ -239,10 +239,7 @@ class LaplaceOperator:
         self.__operators_matrix = self.__operators_matrix.multiply(multiplier)
 
     # TODO: make the function work for single values, arrays and matrix
-    # TODO: add possibility to change boundaries, maybe add warnings
-    # TODO: change direct access to lil_matrix
     def add_matrix_to_operators_matrix(self, add_matrix):
-        # remove rows that changes the boundary
         self.__operators_matrix += add_matrix
         self.__operators_matrix_updated_flag = True
 
