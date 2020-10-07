@@ -94,14 +94,45 @@ class NavierStokesEquations:
         predicted_v = self.__calculate_predicted_v()
         p_prime = self.__calculate_p_prime(predicted_u, predicted_v)
         self.__calculate_new_fields(p_prime, predicted_u, predicted_v)
-        self.__check_divergence(self.__fields_matrix[Field.u], self.__fields_matrix[Field.v])
+        self.__check_divergence()
+        self.__check_gradient_p_dot_u_vector()
 
-    def __check_divergence(self, u, v):
-        u_divergence_x = self.__divergence_x_predicted_u(u)
-        v_divergence_y = self.__divergence_y_predicted_v(v)
+    def __check_divergence(self):
+        u_divergence_x = self.__divergence_x_field_u(self.__fields_matrix[Field.u])
+        v_divergence_y = self.__divergence_y_field_v(self.__fields_matrix[Field.v])
         matrix = u_divergence_x + v_divergence_y
-        print(matrix.max())
-        print("\n\n")
+        print("Max divergence = ", matrix.max())
+
+    def __check_gradient_p_dot_u_vector(self):
+        # P = plus  M = minus h = half
+        p_i_j = self.__fields_matrix[Field.p]
+        p_iP1_j = Boundaries.remove_boundaries(p_i_j, Orientation.left)
+        p_iM1_j = Boundaries.remove_boundaries(p_i_j, Orientation.right)
+        p_i_jP1 = Boundaries.remove_boundaries(p_i_j, Orientation.bottom)
+        p_i_jM1 = Boundaries.remove_boundaries(p_i_j, Orientation.top)
+
+        p_middle_i_j = (p_iP1_j + p_iM1_j) / 2
+        p_iPh_j = Boundaries.add_boundaries(p_middle_i_j, self.__boundaries, Field.p, Orientation.right)
+        p_iMh_j = Boundaries.add_boundaries(p_middle_i_j, self.__boundaries, Field.p, Orientation.left)
+        p_i_middle_j = (p_i_jP1 + p_i_jM1) / 2
+        p_i_jPh = Boundaries.add_boundaries(p_i_middle_j, self.__boundaries, Field.p, Orientation.top)
+        p_i_jMh = Boundaries.add_boundaries(p_i_middle_j, self.__boundaries, Field.p, Orientation.bottom)
+
+        u_i_j = self.__fields_matrix[Field.u]
+        u_iM1_j = Boundaries.add_boundaries(u_i_j, self.__boundaries, Field.u, Orientation.left)
+        u_i_j = Boundaries.add_boundaries(u_i_j, self.__boundaries, Field.u, Orientation.right)
+        v_i_j = self.__fields_matrix[Field.v]
+        v_i_jM1 = Boundaries.add_boundaries(v_i_j, self.__boundaries, Field.v, Orientation.bottom)
+        v_i_j = Boundaries.add_boundaries(v_i_j, self.__boundaries, Field.v, Orientation.top)
+
+        results = np.multiply(p_iPh_j, u_i_j)
+        results -= np.multiply(p_iMh_j, u_iM1_j)
+        results += np.multiply(p_i_jPh, v_i_j)
+        results -= np.multiply(p_i_jMh, v_i_jM1)
+
+        print("Max gradient p dot u vector = ", results.max())
+
+
 
     def __calculate_predicted_u(self):
         gradient_p = self.__gradient_p_predicted_u()
@@ -126,8 +157,8 @@ class NavierStokesEquations:
     def __calculate_p_prime(self, predicted_u, predicted_v):
         predicted_u = Boundaries.remove_boundaries(predicted_u, Orientation.all)
         predicted_v = Boundaries.remove_boundaries(predicted_v, Orientation.all)
-        divergence_x_predicted_u = self.__divergence_x_predicted_u(predicted_u)
-        divergence_y_predicted_v = self.__divergence_y_predicted_v(predicted_v)
+        divergence_x_predicted_u = self.__divergence_x_field_u(predicted_u)
+        divergence_y_predicted_v = self.__divergence_y_field_v(predicted_v)
         right_side_p_prime = divergence_x_predicted_u + divergence_y_predicted_v
         right_side_p_prime /= self.__delta_t
         right_side_p_prime[0][0] = 0
@@ -280,7 +311,7 @@ class NavierStokesEquations:
         results = (p_prime_iP1_j - p_prime_i_j) / half_grid_x
         return results
 
-    def __divergence_x_predicted_u(self, predicted_u):
+    def __divergence_x_field_u(self, predicted_u):
         # P = plus
         predicted_u_iP1_j = Boundaries.add_boundaries(predicted_u, self.__boundaries, Field.u, Orientation.right)
         predicted_u_i_j = Boundaries.add_boundaries(predicted_u, self.__boundaries, Field.u, Orientation.left)
@@ -295,7 +326,7 @@ class NavierStokesEquations:
         results = ((p_prime_i_jP1 - p_prime_i_j).T / half_grid_y).T
         return results
 
-    def __divergence_y_predicted_v(self, predicted_v):
+    def __divergence_y_field_v(self, predicted_v):
         # M = minus
         predicted_v_i_jP1 = Boundaries.add_boundaries(predicted_v, self.__boundaries, Field.v, Orientation.top)
         predicted_v_i_j = Boundaries.add_boundaries(predicted_v, self.__boundaries, Field.v, Orientation.bottom)
