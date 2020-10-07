@@ -10,6 +10,7 @@ if __name__ == "__main__":
     # change constants
     grid_size = 10
     time = 100000
+    delta_t = 0.01
 
     u_matrix = np.full((grid_size + 1, grid_size), 0)
     v_matrix = np.full((grid_size, grid_size + 1), 0)
@@ -17,7 +18,7 @@ if __name__ == "__main__":
     fields_matrix = {Field.u: u_matrix, Field.v: v_matrix, Field.p: p_matrix}
 
     delta = np.full(grid_size + 1, 1/(grid_size + 1))
-    delta_xy = {Delta2.x: delta, Delta2.y: delta}
+    delta_xy = Delta2(delta, delta, delta_t)
 
     full_0 = np.full(grid_size + 1, 0)
     full_1 = np.full(grid_size + 1, 1)
@@ -34,7 +35,6 @@ if __name__ == "__main__":
 
     domain = NavierStokesEquations(fields_matrix, delta_xy, boundaries)
 
-    # plt.axes.set_aspect('equal')
     domain.quiver()
     plt.pause(0.5)
     for i in range(time):

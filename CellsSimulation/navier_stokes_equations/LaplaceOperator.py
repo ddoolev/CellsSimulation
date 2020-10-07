@@ -7,9 +7,8 @@ import numbers
 
 class LaplaceOperator:
 
-    def __init__(self, delta_x, delta_y, field, boundary_condition_type):
-        self.__delta_x = delta_x
-        self.__delta_y = delta_y
+    def __init__(self, delta, field, boundary_condition_type):
+        self.__delta = delta
         self.__boundary_condition_type = boundary_condition_type
         self.__operators_matrix_updated_flag = True
         self.__field = field
@@ -51,14 +50,14 @@ class LaplaceOperator:
 
     def __delta_grid_length(self):
         if self.__field == Field.u:
-            self.__grid_length_x = len(self.__delta_x) + 1
-            self.__grid_length_y = len(self.__delta_y) + 2
+            self.__grid_length_x = len(self.__delta.x) + 1
+            self.__grid_length_y = len(self.__delta.y) + 2
         elif self.__field == Field.v:
-            self.__grid_length_x = len(self.__delta_x) + 2
-            self.__grid_length_y = len(self.__delta_y) + 1
+            self.__grid_length_x = len(self.__delta.x) + 2
+            self.__grid_length_y = len(self.__delta.y) + 1
         else:  # self.__field == Field.p:
-            self.__grid_length_x = len(self.__delta_x) + 2
-            self.__grid_length_y = len(self.__delta_y) + 2
+            self.__grid_length_x = len(self.__delta.x) + 2
+            self.__grid_length_y = len(self.__delta.y) + 2
 
     def __create_laplace_operators_matrix_vector(self, i):
         # create the coefficients.
@@ -67,24 +66,22 @@ class LaplaceOperator:
         y_index = i // self.__grid_length_x - 1
         x_index_half_grid = x_index + 1
         y_index_half_grid = y_index + 1
-        delta_half_x = self.__create_half_grid(self.__delta_x)
-        delta_half_y = self.__create_half_grid(self.__delta_y)
 
         if self.__field == Field.u:
-            coe_i_jM1 = delta_half_x[x_index_half_grid] / delta_half_y[y_index_half_grid - 1]
-            coe_iM1_j = self.__delta_y[y_index] / self.__delta_x[x_index - 1]
-            coe_iP1_j = self.__delta_y[y_index] / self.__delta_x[x_index]
-            coe_i_jP1 = delta_half_x[x_index_half_grid] / delta_half_y[y_index_half_grid]
+            coe_i_jM1 = self.__delta.half_x[x_index_half_grid] / self.__delta.half_y[y_index_half_grid - 1]
+            coe_iM1_j = self.__delta.y[y_index] / self.__delta.x[x_index - 1]
+            coe_iP1_j = self.__delta.y[y_index] / self.__delta.x[x_index]
+            coe_i_jP1 = self.__delta.half_x[x_index_half_grid] / self.__delta.half_y[y_index_half_grid]
         elif self.__field == Field.v:
-            coe_i_jM1 = self.__delta_x[x_index] / self.__delta_y[y_index - 1]
-            coe_iM1_j = delta_half_y[y_index_half_grid] / delta_half_x[x_index_half_grid - 1]
-            coe_iP1_j = delta_half_y[y_index_half_grid] / delta_half_x[x_index_half_grid]
-            coe_i_jP1 = self.__delta_x[x_index] / self.__delta_y[y_index]
+            coe_i_jM1 = self.__delta.x[x_index] / self.__delta.y[y_index - 1]
+            coe_iM1_j = self.__delta.half_y[y_index_half_grid] / self.__delta.half_x[x_index_half_grid - 1]
+            coe_iP1_j = self.__delta.half_y[y_index_half_grid] / self.__delta.half_x[x_index_half_grid]
+            coe_i_jP1 = self.__delta.x[x_index] / self.__delta.y[y_index]
         else:  # self.__field == Field.p
-            coe_i_jM1 = 1 / delta_half_y[y_index_half_grid - 1] ** 2
-            coe_iM1_j = 1 / delta_half_x[x_index_half_grid - 1] ** 2
-            coe_iP1_j = 1 / delta_half_x[x_index_half_grid] ** 2
-            coe_i_jP1 = 1 / delta_half_y[y_index_half_grid] ** 2
+            coe_i_jM1 = 1 / self.__delta.half_y[y_index_half_grid - 1] ** 2
+            coe_iM1_j = 1 / self.__delta.half_x[x_index_half_grid - 1] ** 2
+            coe_iP1_j = 1 / self.__delta.half_x[x_index_half_grid] ** 2
+            coe_i_jP1 = 1 / self.__delta.half_y[y_index_half_grid] ** 2
 
         coe_i_j = -(coe_i_jM1 + coe_iM1_j + coe_iP1_j + coe_i_jP1)
 
@@ -246,12 +243,6 @@ class LaplaceOperator:
     def print(self):
         np.set_printoptions(100)
         self.__print_matrix(np.array(self.__operators_matrix))
-
-    @staticmethod
-    def __create_half_grid(delta):
-        delta_half_grid = (delta[1:] + delta[:-1]) / 2
-        delta_half_grid = np.concatenate(([delta[0] / 2], delta_half_grid, [delta[-1] / 2]))
-        return delta_half_grid
 
     @staticmethod
     def __print_matrix(matrix):

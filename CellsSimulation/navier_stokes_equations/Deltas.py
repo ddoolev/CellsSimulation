@@ -8,7 +8,7 @@ class _Delta:
     def _create_half_grid(delta):
         delta_half_grid = (_Delta._remove_boundaries(delta, Orientation.left) +
                            _Delta._remove_boundaries(delta, Orientation.right)) / 2
-        delta_half_grid = np.concatenate(([delta / 2], delta_half_grid, [delta / 2]))
+        delta_half_grid = np.concatenate(([delta[0] / 2], delta_half_grid, [delta[-1] / 2]))
         return delta_half_grid
 
     @staticmethod
