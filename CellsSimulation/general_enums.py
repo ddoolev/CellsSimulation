@@ -2,20 +2,20 @@ import enum
 
 
 class Field(enum.Enum):
-    u = 0
-    v = 1
-    p = 2
-    all = 3
+    u = enum.auto()
+    v = enum.auto()
+    p = enum.auto()
+    all = enum.auto()
 
 
 class Orientation(enum.Enum):
-    left = 0
-    right = 1
-    bottom = 2
-    top = 3
-    all = 4
+    left = enum.auto()
+    right = enum.auto()
+    bottom = enum.auto()
+    top = enum.auto()
+    all = enum.auto()
 
 
 class BoundaryConditionsType(enum.Enum):
-    dirichlet = 0
-    neumann = 1
+    dirichlet = enum.auto()
+    neumann = enum.auto()

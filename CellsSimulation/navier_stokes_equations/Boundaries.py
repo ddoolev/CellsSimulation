@@ -4,8 +4,8 @@ import numpy as np
 
 
 class BoundaryConditionsType(enum.Enum):
-    dirichlet = 0
-    neumann = 1
+    dirichlet = enum.auto()
+    neumann = enum.auto()
 
 
 class WarningsStrings:
