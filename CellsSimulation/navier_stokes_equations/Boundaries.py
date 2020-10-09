@@ -29,66 +29,66 @@ class Boundaries:
             self.__boundaries[orientation][field] = boundary
 
     @staticmethod
-    def remove_boundaries(array, orientation):
+    def remove_side(array, orientation):
         if array.ndim == 1:
-            return Boundaries.__remove_array_boundaries(array, orientation)
+            return Boundaries.__remove_array_side(array, orientation)
         elif array.ndim == 2:
-            return Boundaries.__remove_matrix_boundaries(array, orientation)
+            return Boundaries.__remove_matrix_side(array, orientation)
         else:
             raise TypeError("Can not handle array with more than 2 dimensions")
 
     @staticmethod
-    def __remove_matrix_boundaries(matrix, orientation):
+    def __remove_matrix_side(matrix, orientation):
         remove_boundary = {
-            Orientation.top: Boundaries.__remove_matrix_boundaries_top(matrix),
-            Orientation.bottom: Boundaries.__remove_matrix_boundaries_bottom(matrix),
-            Orientation.left: Boundaries.__remove_matrix_boundaries_left(matrix),
-            Orientation.right: Boundaries.__remove_matrix_boundaries_right(matrix),
-            Orientation.all: Boundaries.__remove_matrix_boundaries_all(matrix)
+            Orientation.top: Boundaries.__remove_matrix_side_top(matrix),
+            Orientation.bottom: Boundaries.__remove_matrix_side_bottom(matrix),
+            Orientation.left: Boundaries.__remove_matrix_side_left(matrix),
+            Orientation.right: Boundaries.__remove_matrix_side_right(matrix),
+            Orientation.all: Boundaries.__remove_matrix_side_all(matrix)
         }
 
         return remove_boundary.get(orientation)
 
     @staticmethod
-    def __remove_array_boundaries(array, orientation):
+    def __remove_array_side(array, orientation):
         remove_boundary = {
-            Orientation.left: Boundaries.__remove_array_boundaries_left(array),
-            Orientation.right: Boundaries.__remove_array_boundaries_right(array),
-            Orientation.all: Boundaries.__remove_array_boundaries_all(array)
+            Orientation.left: Boundaries.__remove_array_side_left(array),
+            Orientation.right: Boundaries.__remove_array_side_right(array),
+            Orientation.all: Boundaries.__remove_array_side_all(array)
         }
 
         return remove_boundary.get(orientation)
 
     @staticmethod
-    def __remove_matrix_boundaries_top(matrix):
+    def __remove_matrix_side_top(matrix):
         return matrix[:-1, :]
 
     @staticmethod
-    def __remove_matrix_boundaries_bottom(matrix):
+    def __remove_matrix_side_bottom(matrix):
         return matrix[1:, :]
 
     @staticmethod
-    def __remove_matrix_boundaries_left(matrix):
+    def __remove_matrix_side_left(matrix):
         return matrix[:, 1:]
 
     @staticmethod
-    def __remove_matrix_boundaries_right(matrix):
+    def __remove_matrix_side_right(matrix):
         return matrix[:, :-1]
 
     @staticmethod
-    def __remove_matrix_boundaries_all(matrix):
+    def __remove_matrix_side_all(matrix):
         return matrix[1:-1, 1:-1]
 
     @staticmethod
-    def __remove_array_boundaries_all(array):
+    def __remove_array_side_all(array):
         return array[1:-1]
 
     @staticmethod
-    def __remove_array_boundaries_left(array):
+    def __remove_array_side_left(array):
         return array[1:]
 
     @staticmethod
-    def __remove_array_boundaries_right(array):
+    def __remove_array_side_right(array):
         return array[:-1]
 
     @staticmethod
