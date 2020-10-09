@@ -1,6 +1,6 @@
 import numpy as np
 from Boundaries import Boundaries
-from NavierStokesEquations import NavierStokesEquations
+from NavierStokesEquations import NavierStokesEquations, Information
 import matplotlib.pyplot as plt
 from general_enums import Field, Orientation
 from Deltas import Delta2
@@ -33,7 +33,7 @@ if __name__ == "__main__":
                              Orientation.top: boundary_top,
                              Orientation.bottom: boundary_bottom})
 
-    domain = NavierStokesEquations(fields_matrix, delta_xy, boundaries)
+    domain = NavierStokesEquations(fields_matrix, delta_xy, boundaries, information=Information.all)
 
     domain.quiver()
     plt.pause(0.5)

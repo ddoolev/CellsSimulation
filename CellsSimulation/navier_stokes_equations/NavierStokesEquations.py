@@ -5,16 +5,26 @@ import scipy.sparse as sparse
 import matplotlib.pyplot as plt
 from general_enums import Field, Orientation, BoundaryConditionsType
 from Boundaries import Boundaries
+import enum
+
+
+class Information(enum.Flag):
+    none = enum.auto()
+    check_divergent = enum.auto()
+    check_gradient_p_dot_u_vector = enum.auto()
+    all = check_divergent | check_gradient_p_dot_u_vector
 
 
 class NavierStokesEquations:
 
     def __init__(self, field_matrix, delta, boundaries,
-                 boundary_conditions_type=BoundaryConditionsType.neumann):
+                 boundary_conditions_type=BoundaryConditionsType.neumann,
+                 information=Information.none):
 
         self.__fields_matrix = field_matrix
         self.__delta = delta
         self.__boundaries = boundaries
+        self.__information = information
         # decide the pressure boundaries type: Dirichlet or Neumann
         self.__boundary_conditions_type = boundary_conditions_type
 
@@ -82,8 +92,11 @@ class NavierStokesEquations:
         predicted_v = self.__calculate_predicted_v()
         p_prime = self.__calculate_p_prime(predicted_u, predicted_v)
         self.__calculate_new_fields(p_prime, predicted_u, predicted_v)
-        self.__check_divergence()
-        self.__check_gradient_p_dot_u_vector()
+        if self.__information & Information.check_divergent:
+            self.__check_divergence()
+        if self.__information & Information.check_gradient_p_dot_u_vector:
+            self.__check_gradient_p_dot_u_vector()
+        self.__check_num_3()
 
     def __check_divergence(self):
         u_divergence_x = self.__divergence_x_field_u(self.__fields_matrix[Field.u])
