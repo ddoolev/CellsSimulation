@@ -57,7 +57,7 @@ class NavierStokesEquations:
 
         u_identity_matrix = np.multiply(u_identity_matrix, delta_x)
         u_identity_matrix = np.multiply(u_identity_matrix.T, delta_y).T
-        u_identity_matrix = np.multiply(u_identity_matrix, 1/-C.DELTA_T)
+        u_identity_matrix = np.multiply(u_identity_matrix, 1 / -C.DELTA_T)
         u_identity_matrix = sparse.spdiags(u_identity_matrix, [0],
                                            u_matrix_side_length, u_matrix_side_length, format='csr')
 
@@ -81,7 +81,7 @@ class NavierStokesEquations:
 
         v_identity_matrix = np.multiply(v_identity_matrix, delta_x)
         v_identity_matrix = np.multiply(v_identity_matrix, delta_y)
-        v_identity_matrix = np.multiply(v_identity_matrix, 1/-C.DELTA_T)
+        v_identity_matrix = np.multiply(v_identity_matrix, 1 / -C.DELTA_T)
         v_identity_matrix = sparse.spdiags(v_identity_matrix, [0],
                                            v_matrix_side_length, v_matrix_side_length, format='csr')
 
@@ -132,6 +132,85 @@ class NavierStokesEquations:
         results -= np.multiply(p_i_jMh, v_i_jM1)
 
         print("Max gradient p dot u vector = ", results.max())
+
+    def __check_num_3(self):
+        # P = plus  M = minus h = half
+
+        # set v and u on p grid and both derivatives x on u and y on v
+        u_i_j = Boundaries.add_boundaries(self.__fields_matrix[Field.u],
+                                          self.__boundaries, Field.u, Orientation.left)
+        u_iP1_j = Boundaries.add_boundaries(self.__fields_matrix[Field.u],
+                                            self.__boundaries, Field.u, Orientation.right)
+        v_i_j = Boundaries.add_boundaries(self.__fields_matrix[Field.v],
+                                          self.__boundaries, Field.v, Orientation.bottom)
+        v_i_jP1 = Boundaries.add_boundaries(self.__fields_matrix[Field.v],
+                                            self.__boundaries, Field.v, Orientation.top)
+
+        u_on_p_grid = (u_i_j + u_iP1_j) / 2
+        v_on_p_grid = (v_i_j + v_i_jP1) / 2
+        derivative_u_of_x = np.multiply(u_iP1_j - u_i_j, 1 / self.__delta.x)
+        derivative_v_of_y = np.multiply((v_i_jP1 - v_i_j).T, 1 / self.__delta.y).T
+
+        # set derivatives u of y and v of x
+        u_i_j = Boundaries.add_boundaries(u_i_j, self.__boundaries, Field.u, Orientation.right)
+        u_i_jP1 = Boundaries.remove_side(u_i_j, Orientation.bottom)
+        u_i_j = Boundaries.remove_side(u_i_j, Orientation.top)
+        v_i_j = Boundaries.add_boundaries(v_i_j, self.__boundaries, Field.v, Orientation.top)
+        v_iP1_j = Boundaries.remove_side(v_i_j, Orientation.left)
+        v_i_j = Boundaries.remove_side(v_i_j, Orientation.right)
+
+        derivative_u_of_y = np.multiply((u_i_jP1 - u_i_j).T, 1 / self.__delta.half_y_no_boundaries).T
+        derivative_u_of_y = Boundaries.add_boundaries(derivative_u_of_y, self.__boundaries, Field.u, Orientation.top,
+                                                      with_edge_boundaries=True)
+        derivative_u_of_y = Boundaries.add_boundaries(derivative_u_of_y, self.__boundaries, Field.u, Orientation.bottom,
+                                                      with_edge_boundaries=True)
+        # find derivative_u_of_y on p grid
+        derivative_u_of_y_top_left_corner = Boundaries.remove_side(derivative_u_of_y, Orientation.bottom)
+        derivative_u_of_y_top_left_corner = Boundaries.remove_side(derivative_u_of_y_top_left_corner,
+                                                                   Orientation.right)
+        derivative_u_of_y_top_right_corner = Boundaries.remove_side(derivative_u_of_y, Orientation.bottom)
+        derivative_u_of_y_top_right_corner = Boundaries.remove_side(derivative_u_of_y_top_right_corner,
+                                                                    Orientation.left)
+        derivative_u_of_y_bottom_right_corner = Boundaries.remove_side(derivative_u_of_y, Orientation.top)
+        derivative_u_of_y_bottom_right_corner = Boundaries.remove_side(derivative_u_of_y_bottom_right_corner,
+                                                                       Orientation.left)
+        derivative_u_of_y_bottom_left_corner = Boundaries.remove_side(derivative_u_of_y, Orientation.top)
+        derivative_u_of_y_bottom_left_corner = Boundaries.remove_side(derivative_u_of_y_bottom_left_corner,
+                                                                      Orientation.right)
+        derivative_u_of_y = (derivative_u_of_y_top_left_corner
+                             + derivative_u_of_y_top_right_corner
+                             + derivative_u_of_y_bottom_right_corner
+                             + derivative_u_of_y_bottom_left_corner) / 4
+
+        derivative_v_of_x = np.multiply(v_iP1_j - v_i_j, 1 / self.__delta.half_x_no_boundaries)
+        derivative_v_of_x = Boundaries.add_boundaries(derivative_v_of_x, self.__boundaries, Field.v, Orientation.left,
+                                                      with_edge_boundaries=True)
+        derivative_v_of_x = Boundaries.add_boundaries(derivative_v_of_x, self.__boundaries, Field.v, Orientation.right,
+                                                      with_edge_boundaries=True)
+
+        # find derivative_v_of_x on p grid
+        derivative_v_of_x_top_left_corner = Boundaries.remove_side(derivative_v_of_x, Orientation.bottom)
+        derivative_v_of_x_top_left_corner = Boundaries.remove_side(derivative_v_of_x_top_left_corner,
+                                                                   Orientation.right)
+        derivative_v_of_x_top_right_corner = Boundaries.remove_side(derivative_v_of_x, Orientation.bottom)
+        derivative_v_of_x_top_right_corner = Boundaries.remove_side(derivative_v_of_x_top_right_corner,
+                                                                    Orientation.left)
+        derivative_v_of_x_bottom_right_corner = Boundaries.remove_side(derivative_v_of_x, Orientation.top)
+        derivative_v_of_x_bottom_right_corner = Boundaries.remove_side(derivative_v_of_x_bottom_right_corner,
+                                                                       Orientation.left)
+        derivative_v_of_x_bottom_left_corner = Boundaries.remove_side(derivative_v_of_x, Orientation.top)
+        derivative_v_of_x_bottom_left_corner = Boundaries.remove_side(derivative_v_of_x_bottom_left_corner,
+                                                                      Orientation.right)
+        derivative_v_of_x = (derivative_v_of_x_top_left_corner
+                             + derivative_v_of_x_top_right_corner
+                             + derivative_v_of_x_bottom_right_corner
+                             + derivative_v_of_x_bottom_left_corner) / 4
+
+        results = np.multiply(np.multiply(u_on_p_grid, u_on_p_grid), derivative_u_of_x) \
+                  + np.multiply(np.multiply(u_on_p_grid, v_on_p_grid), derivative_u_of_y + derivative_v_of_x) \
+                  + np.multiply(np.multiply(u_on_p_grid, u_on_p_grid), derivative_v_of_y)
+
+        print("Max check number 3 = ", results.max())
 
     def __calculate_predicted_u(self):
         gradient_p = self.__gradient_p_predicted_u()
@@ -331,9 +410,9 @@ class NavierStokesEquations:
         index_u_matrix = (Boundaries.remove_side(index_u_matrix, Orientation.top) +
                           Boundaries.remove_side(index_u_matrix, Orientation.bottom)) / 2
         index_u_matrix = Boundaries.add_boundaries(index_u_matrix, self.__boundaries, Field.u,
-                                                   Orientation.bottom, with_side_boundaries=True)
+                                                   Orientation.bottom, with_edge_boundaries=True)
         index_u_matrix = Boundaries.add_boundaries(index_u_matrix, self.__boundaries, Field.u,
-                                                   Orientation.top, with_side_boundaries=True)
+                                                   Orientation.top, with_edge_boundaries=True)
         return index_u_matrix
 
     def __get_index_v_matrix(self):
@@ -343,9 +422,9 @@ class NavierStokesEquations:
         index_v_matrix = (Boundaries.remove_side(index_v_matrix, Orientation.left) +
                           Boundaries.remove_side(index_v_matrix, Orientation.right)) / 2
         index_v_matrix = Boundaries.add_boundaries(index_v_matrix, self.__boundaries, Field.v,
-                                                   Orientation.left, with_side_boundaries=True)
+                                                   Orientation.left, with_edge_boundaries=True)
         index_v_matrix = Boundaries.add_boundaries(index_v_matrix, self.__boundaries, Field.v,
-                                                   Orientation.right, with_side_boundaries=True)
+                                                   Orientation.right, with_edge_boundaries=True)
         return index_v_matrix
 
     ###################################### Data options
@@ -368,3 +447,7 @@ class NavierStokesEquations:
     @boundary_conditions_type.setter
     def boundary_conditions_type(self, boundary_conditions_type):
         self.__boundary_conditions_type = boundary_conditions_type
+
+    @property
+    def fields_matrix(self):
+        return self.__fields_matrix

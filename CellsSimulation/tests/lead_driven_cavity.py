@@ -5,12 +5,26 @@ import matplotlib.pyplot as plt
 from general_enums import Field, Orientation
 from Deltas import Delta2
 
+
+def is_in_steady_state():
+    epsilon = 0.00001
+    delta_u = new_fields_matrix[Field.u] - old_fields_matrix[Field.u]
+    delta_v = new_fields_matrix[Field.v] - old_fields_matrix[Field.v]
+    delta_p = new_fields_matrix[Field.p] - old_fields_matrix[Field.p]
+    if (delta_u.max() < epsilon) and (delta_v.max() < epsilon) and (delta_p.max() < epsilon):
+        print("delta_u.max = ", delta_u.max())
+        print("delta_v.max = ", delta_v.max())
+        print("delta_p.max = ", delta_p.max())
+        return True
+    return False
+
+
 if __name__ == "__main__":
 
     # change constants
-    grid_size = 10
+    grid_size = 20
     time = 100000
-    delta_t = 0.01
+    delta_t = 0.1
 
     u_matrix = np.full((grid_size + 1, grid_size), 0)
     v_matrix = np.full((grid_size, grid_size + 1), 0)
@@ -36,9 +50,14 @@ if __name__ == "__main__":
     domain = NavierStokesEquations(fields_matrix, delta_xy, boundaries, information=Information.all)
 
     domain.quiver()
-    plt.pause(0.5)
+    old_fields_matrix = domain.fields_matrix.copy()
+    plt.pause(0.1)
     for i in range(time):
         plt.cla()
         domain.next_step()
+        new_fields_matrix = domain.fields_matrix.copy()
+        if is_in_steady_state():
+            break
+        old_fields_matrix = new_fields_matrix.copy()
         domain.quiver()
-        plt.pause(0.5)
+        plt.pause(0.1)

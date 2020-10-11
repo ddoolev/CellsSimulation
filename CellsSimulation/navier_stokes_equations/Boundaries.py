@@ -92,7 +92,7 @@ class Boundaries:
         return array[:-1]
 
     @staticmethod
-    def add_boundaries(matrix, boundaries, field, orientation, with_side_boundaries=False):
+    def add_boundaries(matrix, boundaries, field, orientation, with_edge_boundaries=False):
         if orientation == Orientation.all:
             return Boundaries.__add_all_boundaries(matrix, boundaries, field)
         else:
@@ -103,7 +103,7 @@ class Boundaries:
                 Orientation.bottom: Boundaries.__add_bottom_boundary,
             }
             function = add_boundaries_function.get(orientation)
-            return function(matrix, boundaries, field, with_side_boundaries)
+            return function(matrix, boundaries, field, with_edge_boundaries)
 
     @staticmethod
     def __add_left_boundary(matrix, boundaries, field, with_top_bottom_boundaries):
