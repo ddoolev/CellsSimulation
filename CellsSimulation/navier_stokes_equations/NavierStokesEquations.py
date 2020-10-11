@@ -12,7 +12,8 @@ class Information(enum.Flag):
     none = enum.auto()
     check_divergent = enum.auto()
     check_gradient_p_dot_u_vector = enum.auto()
-    all = check_divergent | check_gradient_p_dot_u_vector
+    check_num_3 = enum.auto()
+    all = check_divergent | check_gradient_p_dot_u_vector | check_num_3
 
 
 class NavierStokesEquations:
@@ -96,7 +97,8 @@ class NavierStokesEquations:
             self.__check_divergence()
         if self.__information & Information.check_gradient_p_dot_u_vector:
             self.__check_gradient_p_dot_u_vector()
-        self.__check_num_3()
+        if self.__information & Information.check_num_3:
+            self.__check_num_3()
 
     def __check_divergence(self):
         u_divergence_x = self.__divergence_x_field_u(self.__fields_matrix[Field.u])
