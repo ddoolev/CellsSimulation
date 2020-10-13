@@ -5,5 +5,7 @@ RESOLUTION = 1
 
 Re = 100  # Reynolds number
 DELTA_T = 0.01
+GRID_SIZE = 20
+TEST_NAME = "lead_driven_cavity"
 
 ENV = simpy.Environment()
