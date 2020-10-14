@@ -39,7 +39,7 @@ class LaplaceOperator:
         operators_matrix_diagonals = \
             np.concatenate((operators_matrix_diagonals, boundary_block_bottom), axis=1)
 
-        offsets = np.array([self.__grid_length_y, 1, 0, -1, -self.__grid_length_y])
+        offsets = np.array([self.__grid_length_x, 1, 0, -1, -self.__grid_length_x])
 
         operators_matrix = sparse.spdiags(
             operators_matrix_diagonals, offsets,
@@ -51,13 +51,13 @@ class LaplaceOperator:
     def __delta_grid_length(self):
         if self.__field == Field.u:
             self.__grid_length_x = len(self.__delta.x) + 1
-            self.__grid_length_y = len(self.__delta.y) + 2
+            self.__grid_length_y = len(self.__delta.half_y) + 1
         elif self.__field == Field.v:
-            self.__grid_length_x = len(self.__delta.x) + 2
+            self.__grid_length_x = len(self.__delta.half_x) + 1
             self.__grid_length_y = len(self.__delta.y) + 1
         else:  # self.__field == Field.p:
-            self.__grid_length_x = len(self.__delta.x) + 2
-            self.__grid_length_y = len(self.__delta.y) + 2
+            self.__grid_length_x = len(self.__delta.half_x) + 1
+            self.__grid_length_y = len(self.__delta.half_y) + 1
 
     def __create_laplace_operators_matrix_vector(self, i):
         # create the coefficients.
