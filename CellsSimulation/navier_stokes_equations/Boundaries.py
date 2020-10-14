@@ -1,88 +1,149 @@
 import enum
-import warnings
-from enums import Fields
+from general_enums import Field, Orientation
+import numpy as np
 
 
 class BoundaryConditionsType(enum.Enum):
-    DIRICHLET = 0
-    NUEMANN = 1
+    dirichlet = enum.auto()
+    neumann = enum.auto()
 
 
 class WarningsStrings:
-    NUEMANN_PRESSURE = "Should not use pressure values when in Neumann boundary condition type"
+    neumann_pressure = "Should not use pressure values when in Neumann boundary condition type"
 
 
 class Boundaries:
-    # __u: Dict[str:np.array]
-    # __v: Dict[str:np.array]
-    # __p: Dict[str:np.array]
-    # __boundary_conditions_type: BoundaryConditionsType
 
-    def __init__(self, left, right, top, bottom, boundary_conditions_type=BoundaryConditionsType.NUEMANN):
-        # Boundaries should not include the corners
-        self.__left = left
-        self.__right = right
-        self.__top = top
-        self.__bottom = bottom
-        # decide the pressure boundaries type: Dirichlet or Neumann
-        self.__boundary_conditions_type = boundary_conditions_type
+    def __init__(self, boundaries):
+        self.__boundaries = boundaries
 
-    @property
-    def boundary_conditions_type(self):
-        return self.__boundary_conditions_type
+    def get_boundary(self, orientation, field=Field.all):
+        if field == Field.all:
+            return self.__boundaries[orientation]
+        return self.__boundaries[orientation][field]
 
-    @boundary_conditions_type.setter
-    def boundary_conditions_type(self, boundary_conditions_type):
-        self.__boundary_conditions_type = boundary_conditions_type
-
-    def get_left(self, fields=Fields.ALL):
-        if fields == fields.ALL:
-            return self.__left
-        elif fields == fields.U:
-            warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
-        return self.__left[fields]
-
-    def set_left(self, left_boundary, fields=Fields.ALL):
-        if fields == Fields.ALL:
-            self.__left = left_boundary
+    def set_boundary(self, boundary, orientation, field=Field.all):
+        if field == Field.all:
+            self.__boundaries[orientation] = boundary
         else:
-            self.__left[fields] = left_boundary
+            self.__boundaries[orientation][field] = boundary
 
-    def get_right(self, fields=Fields.ALL):
-        if fields == Fields.ALL:
-            return self.__right
-        elif fields == Fields.U:
-            warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
-        return self.__right[fields]
-
-    def set_right(self, right_boundary, fields=Fields.ALL):
-        if fields == Fields.ALL:
-            self.__right = right_boundary
+    @staticmethod
+    def remove_side(array, orientation):
+        if array.ndim == 1:
+            return Boundaries.__remove_array_side(array, orientation)
+        elif array.ndim == 2:
+            return Boundaries.__remove_matrix_side(array, orientation)
         else:
-            self.__right[fields] = right_boundary
+            raise TypeError("Can not handle array with more than 2 dimensions")
 
-    def get_top(self, fields=Fields.ALL):
-        if fields == Fields.ALL:
-            return self.__top
-        elif fields == Fields.U:
-            warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
-        return self.__top[fields]
+    @staticmethod
+    def __remove_matrix_side(matrix, orientation):
+        remove_boundary = {
+            Orientation.top: Boundaries.__remove_matrix_side_top(matrix),
+            Orientation.bottom: Boundaries.__remove_matrix_side_bottom(matrix),
+            Orientation.left: Boundaries.__remove_matrix_side_left(matrix),
+            Orientation.right: Boundaries.__remove_matrix_side_right(matrix),
+            Orientation.all: Boundaries.__remove_matrix_side_all(matrix)
+        }
 
-    def set_top(self, top_boundary, fields=Fields.ALL):
-        if fields == Fields.ALL:
-            self.__top = top_boundary
+        return remove_boundary.get(orientation)
+
+    @staticmethod
+    def __remove_array_side(array, orientation):
+        remove_boundary = {
+            Orientation.left: Boundaries.__remove_array_side_left(array),
+            Orientation.right: Boundaries.__remove_array_side_right(array),
+            Orientation.all: Boundaries.__remove_array_side_all(array)
+        }
+
+        return remove_boundary.get(orientation)
+
+    @staticmethod
+    def __remove_matrix_side_top(matrix):
+        return matrix[:-1, :]
+
+    @staticmethod
+    def __remove_matrix_side_bottom(matrix):
+        return matrix[1:, :]
+
+    @staticmethod
+    def __remove_matrix_side_left(matrix):
+        return matrix[:, 1:]
+
+    @staticmethod
+    def __remove_matrix_side_right(matrix):
+        return matrix[:, :-1]
+
+    @staticmethod
+    def __remove_matrix_side_all(matrix):
+        return matrix[1:-1, 1:-1]
+
+    @staticmethod
+    def __remove_array_side_all(array):
+        return array[1:-1]
+
+    @staticmethod
+    def __remove_array_side_left(array):
+        return array[1:]
+
+    @staticmethod
+    def __remove_array_side_right(array):
+        return array[:-1]
+
+    @staticmethod
+    def add_boundaries(matrix, boundaries, field, orientation, with_edge_boundaries=False):
+        if orientation == Orientation.all:
+            return Boundaries.__add_all_boundaries(matrix, boundaries, field)
         else:
-            self.__top[fields] = top_boundary
+            add_boundaries_function = {
+                Orientation.left: Boundaries.__add_left_boundary,
+                Orientation.right: Boundaries.__add_right_boundary,
+                Orientation.top: Boundaries.__add_top_boundary,
+                Orientation.bottom: Boundaries.__add_bottom_boundary,
+            }
+            function = add_boundaries_function.get(orientation)
+            return function(matrix, boundaries, field, with_edge_boundaries)
 
-    def get_bottom(self, fields=Fields.ALL):
-        if fields == Fields.ALL:
-            return self.__bottom
-        elif fields == Fields.U:
-            warnings.warn(WarningsStrings.NUEMANN_PRESSURE)
-        return self.__bottom[fields]
+    @staticmethod
+    def __add_left_boundary(matrix, boundaries, field, with_top_bottom_boundaries):
+        left_boundary = boundaries.get_boundary(Orientation.left, field)
+        if with_top_bottom_boundaries:
+            left_boundary = np.concatenate(([0], left_boundary, [0]))
 
-    def set_bottom(self, bottom_boundary, fields=Fields.ALL):
-        if fields == Fields.ALL:
-            self.__bottom = bottom_boundary
-        else:
-            self.__bottom[fields] = bottom_boundary
+        left_boundary = np.array([left_boundary]).T
+        return np.append(left_boundary, matrix, axis=1)
+
+    @staticmethod
+    def __add_right_boundary(matrix, boundaries, field, with_top_bottom_boundaries):
+        right_boundary = boundaries.get_boundary(Orientation.right, field)
+        if with_top_bottom_boundaries:
+            right_boundary = np.concatenate(([0], right_boundary, [0]))
+
+        right_boundary = np.array([right_boundary]).T
+        return np.append(matrix, right_boundary, axis=1)
+
+    @staticmethod
+    def __add_bottom_boundary(matrix, boundaries, field, with_left_right_boundaries):
+        bottom_boundary = boundaries.get_boundary(Orientation.bottom, field)
+        if with_left_right_boundaries:
+            bottom_boundary = np.concatenate(([0], bottom_boundary, [0]))
+
+        return np.append([bottom_boundary], matrix, axis=0)
+
+    @staticmethod
+    def __add_top_boundary(matrix, boundaries, field, with_left_right_boundaries):
+        top_boundary = boundaries.get_boundary(Orientation.top, field)
+        if with_left_right_boundaries:
+            top_boundary = np.concatenate(([0], top_boundary, [0]))
+
+        return np.append(matrix, [top_boundary], axis=0)
+
+    @staticmethod
+    def __add_all_boundaries(matrix, boundaries, field):
+        matrix = Boundaries.__add_top_boundary(matrix, boundaries, field, False)
+        matrix = Boundaries.__add_bottom_boundary(matrix, boundaries, field, False)
+        matrix = Boundaries.__add_left_boundary(matrix, boundaries, field, True)
+        matrix = Boundaries.__add_right_boundary(matrix, boundaries, field, True)
+        return matrix
+

@@ -2,245 +2,454 @@ import numpy as np
 from LaplaceOperator import LaplaceOperator
 import Constants as C
 import scipy.sparse as sparse
-from Boundaries import Boundaries, BoundaryConditionsType
-import enum
 import matplotlib.pyplot as plt
-from enums import Fields
+from general_enums import Field, Orientation, BoundaryConditionsType
+from Boundaries import Boundaries
+import enum
 
 
-class ORIENTATION(enum.Enum):
-    LEFT = 0
-    RIGHT = 1
-    TOP = 2
-    BOTTOM = 3
+class Information(enum.Flag):
+    none = enum.auto()
+    check_divergent = enum.auto()
+    check_gradient_p_dot_u_vector = enum.auto()
+    check_num_3 = enum.auto()
+    all = check_divergent | check_gradient_p_dot_u_vector | check_num_3
 
 
 class NavierStokesEquations:
 
-    __boundaries: Boundaries
+    def __init__(self, field_matrix, delta, boundaries,
+                 boundary_conditions_type=BoundaryConditionsType.neumann,
+                 information=Information.none):
 
-    def __init__(self, p_matrix, v_matrix, u_matrix, delta_x, delta_y, boundaries):
-        self.__p_matrix = p_matrix
-        self.__v_matrix = v_matrix
-        self.__u_matrix = u_matrix
-        self.__delta_x = delta_x
-        self.__delta_y = delta_y
+        self.__fields_matrix = field_matrix
+        self.__delta = delta
         self.__boundaries = boundaries
-        self.__delta_t = C.TIME_STEP
+        self.__information = information
+        # decide the pressure boundaries type: Dirichlet or Neumann
+        self.__boundary_conditions_type = boundary_conditions_type
 
-        self.__laplace_operator_p_prime = LaplaceOperator(delta_x, delta_y)
+        # make the laplacian operators
+        self.__create_p_prime_laplacian()
+        self.__create_predicted_u_laplacian()
+        self.__create_predicted_v_laplacian()
 
-        self.__laplace_operator_velocity = LaplaceOperator(delta_x, delta_y)
-        self.__laplace_operator_velocity.multiply_operators_matrix(-1 / C.Re)
-        matrix_side_length = (len(delta_x) + 1) * (len(delta_y) + 1)
-        identity_matrix = sparse.diags(np.full(matrix_side_length, 1))
-        self.__laplace_operator_velocity = self.__laplace_operator_velocity.add_to_operators_matrix(identity_matrix)
+    ###################################### Create laplacians
+
+    def __create_p_prime_laplacian(self):
+        self.__laplace_operator_p_prime = LaplaceOperator(self.__delta, Field.p,
+                                                          BoundaryConditionsType.neumann)
+
+    def __create_predicted_u_laplacian(self):
+        self.__laplace_operator_predicted_u = LaplaceOperator(self.__delta, Field.u,
+                                                              BoundaryConditionsType.dirichlet)
+
+        self.__laplace_operator_predicted_u.multiply_operators_matrix(1 / C.Re)
+
+        # add delta_x*delta_y/delta_t
+        u_matrix_side_length = (len(self.__delta.x) + 1) * (len(self.__delta.half_y) + 1)
+        u_identity_matrix = np.full(u_matrix_side_length, 1)
+
+        delta_x = Boundaries.remove_side(self.__delta.half_x, Orientation.all)
+        delta_x = np.concatenate(([0], delta_x, [0]))
+        delta_x = np.tile(delta_x, (len(self.__delta.y) + 2))
+        delta_y = np.concatenate(([0], self.__delta.y, [0]))
+        delta_y = np.repeat(delta_y, len(self.__delta.half_x))
+
+        u_identity_matrix = np.multiply(u_identity_matrix, delta_x)
+        u_identity_matrix = np.multiply(u_identity_matrix.T, delta_y).T
+        u_identity_matrix = np.multiply(u_identity_matrix, 1 / -C.DELTA_T)
+        u_identity_matrix = sparse.spdiags(u_identity_matrix, [0],
+                                           u_matrix_side_length, u_matrix_side_length, format='csr')
+
+        self.__laplace_operator_predicted_u.add_matrix_to_operators_matrix(u_identity_matrix)
+
+    def __create_predicted_v_laplacian(self):
+        self.__laplace_operator_predicted_v = LaplaceOperator(self.__delta, Field.v,
+                                                              BoundaryConditionsType.dirichlet)
+
+        self.__laplace_operator_predicted_v.multiply_operators_matrix(1 / C.Re)
+
+        # add delta_x*delta_y/delta_t
+        v_matrix_side_length = (len(self.__delta.x) + 1) * (len(self.__delta.half_y) + 1)
+        v_identity_matrix = np.full(v_matrix_side_length, 1)
+
+        delta_x = np.concatenate(([0], self.__delta.x, [0]))
+        delta_x = np.tile(delta_x, len(self.__delta.half_x))
+        delta_y = Boundaries.remove_side(self.__delta.half_y, Orientation.all)
+        delta_y = np.concatenate(([0], delta_y, [0]))
+        delta_y = np.repeat(delta_y, (len(self.__delta.x) + 2))
+
+        v_identity_matrix = np.multiply(v_identity_matrix, delta_x)
+        v_identity_matrix = np.multiply(v_identity_matrix, delta_y)
+        v_identity_matrix = np.multiply(v_identity_matrix, 1 / -C.DELTA_T)
+        v_identity_matrix = sparse.spdiags(v_identity_matrix, [0],
+                                           v_matrix_side_length, v_matrix_side_length, format='csr')
+
+        self.__laplace_operator_predicted_v.add_matrix_to_operators_matrix(v_identity_matrix)
 
     def next_step(self):
-        # calculate predicted u and v
-        right_side_predicted_u = self.__pressure_terms_x() + \
-                                 self.__non_linear_parameters_x() + \
-                                 self.__u_matrix
-        right_side_predicted_v = self.__pressure_terms_y() + \
-                                 self.__non_linear_parameters_y() + \
-                                 self.__v_matrix
-        predicted_u = self.__laplace_operator_velocity.solve(right_side_predicted_u)
-        predicted_v = self.__laplace_operator_velocity.solve(right_side_predicted_v)
+        predicted_u = self.__calculate_predicted_u()
+        predicted_v = self.__calculate_predicted_v()
+        p_prime = self.__calculate_p_prime(predicted_u, predicted_v)
+        self.__calculate_new_fields(p_prime, predicted_u, predicted_v)
+        if self.__information & Information.check_divergent:
+            self.__check_divergence()
+        if self.__information & Information.check_gradient_p_dot_u_vector:
+            self.__check_gradient_p_dot_u_vector()
+        if self.__information & Information.check_num_3:
+            self.__check_num_3()
 
-        # calculate p prime
-        right_side_p_prime = -(self.__divergence_x(predicted_u, Fields.U) +
-                               self.__divergence_y(predicted_v, Fields.V)) / self.__delta_t
+    def __check_divergence(self):
+        u_divergence_x = self.__divergence_x_field_u(self.__fields_matrix[Field.u])
+        v_divergence_y = self.__divergence_y_field_v(self.__fields_matrix[Field.v])
+        matrix = u_divergence_x + v_divergence_y
+        print("Max divergence = ", matrix.max())
+
+    def __check_gradient_p_dot_u_vector(self):
+        # P = plus  M = minus h = half
+        p_i_j = self.__fields_matrix[Field.p]
+        p_iP1_j = Boundaries.remove_side(p_i_j, Orientation.left)
+        p_iM1_j = Boundaries.remove_side(p_i_j, Orientation.right)
+        p_i_jP1 = Boundaries.remove_side(p_i_j, Orientation.bottom)
+        p_i_jM1 = Boundaries.remove_side(p_i_j, Orientation.top)
+
+        p_middle_i_j = (p_iP1_j + p_iM1_j) / 2
+        p_iPh_j = Boundaries.add_boundaries(p_middle_i_j, self.__boundaries, Field.p, Orientation.right)
+        p_iMh_j = Boundaries.add_boundaries(p_middle_i_j, self.__boundaries, Field.p, Orientation.left)
+        p_i_middle_j = (p_i_jP1 + p_i_jM1) / 2
+        p_i_jPh = Boundaries.add_boundaries(p_i_middle_j, self.__boundaries, Field.p, Orientation.top)
+        p_i_jMh = Boundaries.add_boundaries(p_i_middle_j, self.__boundaries, Field.p, Orientation.bottom)
+
+        u_i_j = self.__fields_matrix[Field.u]
+        u_iM1_j = Boundaries.add_boundaries(u_i_j, self.__boundaries, Field.u, Orientation.left)
+        u_i_j = Boundaries.add_boundaries(u_i_j, self.__boundaries, Field.u, Orientation.right)
+        v_i_j = self.__fields_matrix[Field.v]
+        v_i_jM1 = Boundaries.add_boundaries(v_i_j, self.__boundaries, Field.v, Orientation.bottom)
+        v_i_j = Boundaries.add_boundaries(v_i_j, self.__boundaries, Field.v, Orientation.top)
+
+        results = np.multiply(p_iPh_j, u_i_j)
+        results -= np.multiply(p_iMh_j, u_iM1_j)
+        results += np.multiply(p_i_jPh, v_i_j)
+        results -= np.multiply(p_i_jMh, v_i_jM1)
+
+        print("Max gradient p dot u vector = ", results.max())
+
+    def __check_num_3(self):
+        # P = plus  M = minus h = half
+
+        # set v and u on p grid and both derivatives x on u and y on v
+        u_i_j = Boundaries.add_boundaries(self.__fields_matrix[Field.u],
+                                          self.__boundaries, Field.u, Orientation.left)
+        u_iP1_j = Boundaries.add_boundaries(self.__fields_matrix[Field.u],
+                                            self.__boundaries, Field.u, Orientation.right)
+        v_i_j = Boundaries.add_boundaries(self.__fields_matrix[Field.v],
+                                          self.__boundaries, Field.v, Orientation.bottom)
+        v_i_jP1 = Boundaries.add_boundaries(self.__fields_matrix[Field.v],
+                                            self.__boundaries, Field.v, Orientation.top)
+
+        u_on_p_grid = (u_i_j + u_iP1_j) / 2
+        v_on_p_grid = (v_i_j + v_i_jP1) / 2
+        derivative_u_of_x = np.multiply(u_iP1_j - u_i_j, 1 / self.__delta.x)
+        derivative_v_of_y = np.multiply((v_i_jP1 - v_i_j).T, 1 / self.__delta.y).T
+
+        # set derivatives u of y and v of x
+        u_i_j = Boundaries.add_boundaries(u_i_j, self.__boundaries, Field.u, Orientation.right)
+        u_i_jP1 = Boundaries.remove_side(u_i_j, Orientation.bottom)
+        u_i_j = Boundaries.remove_side(u_i_j, Orientation.top)
+        v_i_j = Boundaries.add_boundaries(v_i_j, self.__boundaries, Field.v, Orientation.top)
+        v_iP1_j = Boundaries.remove_side(v_i_j, Orientation.left)
+        v_i_j = Boundaries.remove_side(v_i_j, Orientation.right)
+
+        derivative_u_of_y = np.multiply((u_i_jP1 - u_i_j).T, 1 / self.__delta.half_y_no_boundaries).T
+        derivative_u_of_y = Boundaries.add_boundaries(derivative_u_of_y, self.__boundaries, Field.u, Orientation.top,
+                                                      with_edge_boundaries=True)
+        derivative_u_of_y = Boundaries.add_boundaries(derivative_u_of_y, self.__boundaries, Field.u, Orientation.bottom,
+                                                      with_edge_boundaries=True)
+        # find derivative_u_of_y on p grid
+        derivative_u_of_y_top_left_corner = Boundaries.remove_side(derivative_u_of_y, Orientation.bottom)
+        derivative_u_of_y_top_left_corner = Boundaries.remove_side(derivative_u_of_y_top_left_corner,
+                                                                   Orientation.right)
+        derivative_u_of_y_top_right_corner = Boundaries.remove_side(derivative_u_of_y, Orientation.bottom)
+        derivative_u_of_y_top_right_corner = Boundaries.remove_side(derivative_u_of_y_top_right_corner,
+                                                                    Orientation.left)
+        derivative_u_of_y_bottom_right_corner = Boundaries.remove_side(derivative_u_of_y, Orientation.top)
+        derivative_u_of_y_bottom_right_corner = Boundaries.remove_side(derivative_u_of_y_bottom_right_corner,
+                                                                       Orientation.left)
+        derivative_u_of_y_bottom_left_corner = Boundaries.remove_side(derivative_u_of_y, Orientation.top)
+        derivative_u_of_y_bottom_left_corner = Boundaries.remove_side(derivative_u_of_y_bottom_left_corner,
+                                                                      Orientation.right)
+        derivative_u_of_y = (derivative_u_of_y_top_left_corner
+                             + derivative_u_of_y_top_right_corner
+                             + derivative_u_of_y_bottom_right_corner
+                             + derivative_u_of_y_bottom_left_corner) / 4
+
+        derivative_v_of_x = np.multiply(v_iP1_j - v_i_j, 1 / self.__delta.half_x_no_boundaries)
+        derivative_v_of_x = Boundaries.add_boundaries(derivative_v_of_x, self.__boundaries, Field.v, Orientation.left,
+                                                      with_edge_boundaries=True)
+        derivative_v_of_x = Boundaries.add_boundaries(derivative_v_of_x, self.__boundaries, Field.v, Orientation.right,
+                                                      with_edge_boundaries=True)
+
+        # find derivative_v_of_x on p grid
+        derivative_v_of_x_top_left_corner = Boundaries.remove_side(derivative_v_of_x, Orientation.bottom)
+        derivative_v_of_x_top_left_corner = Boundaries.remove_side(derivative_v_of_x_top_left_corner,
+                                                                   Orientation.right)
+        derivative_v_of_x_top_right_corner = Boundaries.remove_side(derivative_v_of_x, Orientation.bottom)
+        derivative_v_of_x_top_right_corner = Boundaries.remove_side(derivative_v_of_x_top_right_corner,
+                                                                    Orientation.left)
+        derivative_v_of_x_bottom_right_corner = Boundaries.remove_side(derivative_v_of_x, Orientation.top)
+        derivative_v_of_x_bottom_right_corner = Boundaries.remove_side(derivative_v_of_x_bottom_right_corner,
+                                                                       Orientation.left)
+        derivative_v_of_x_bottom_left_corner = Boundaries.remove_side(derivative_v_of_x, Orientation.top)
+        derivative_v_of_x_bottom_left_corner = Boundaries.remove_side(derivative_v_of_x_bottom_left_corner,
+                                                                      Orientation.right)
+        derivative_v_of_x = (derivative_v_of_x_top_left_corner
+                             + derivative_v_of_x_top_right_corner
+                             + derivative_v_of_x_bottom_right_corner
+                             + derivative_v_of_x_bottom_left_corner) / 4
+
+        results = np.multiply(np.multiply(u_on_p_grid, u_on_p_grid), derivative_u_of_x) \
+                  + np.multiply(np.multiply(u_on_p_grid, v_on_p_grid), derivative_u_of_y + derivative_v_of_x) \
+                  + np.multiply(np.multiply(u_on_p_grid, u_on_p_grid), derivative_v_of_y)
+
+        print("Max check number 3 = ", results.max())
+
+    def __calculate_predicted_u(self):
+        gradient_p = self.__gradient_p_predicted_u()
+        derivative_t = self.__derivative_t_for_momentum_conservation_u()
+        non_linear = self.__non_linear_parameters_x()
+        right_side_predicted_u = gradient_p - derivative_t + non_linear
+        right_side_predicted_u = Boundaries.add_boundaries(right_side_predicted_u, self.__boundaries,
+                                                           Field.u, Orientation.all)
+        predicted_u = self.__laplace_operator_predicted_u.solve(right_side_predicted_u)
+        return predicted_u
+
+    def __calculate_predicted_v(self):
+        gradient_p = self.__gradient_p_predicted_v()
+        derivative_t = self.__derivative_t_for_momentum_conservation_v()
+        non_linear_parameters = self.__non_linear_parameters_y()
+        right_side_predicted_v = gradient_p - derivative_t + non_linear_parameters
+        right_side_predicted_v = Boundaries.add_boundaries(right_side_predicted_v, self.__boundaries,
+                                                           Field.v, Orientation.all)
+        predicted_v = self.__laplace_operator_predicted_v.solve(right_side_predicted_v)
+        return predicted_v
+
+    def __calculate_p_prime(self, predicted_u, predicted_v):
+        predicted_u = Boundaries.remove_side(predicted_u, Orientation.all)
+        predicted_v = Boundaries.remove_side(predicted_v, Orientation.all)
+        divergence_x_predicted_u = self.__divergence_x_field_u(predicted_u)
+        divergence_y_predicted_v = self.__divergence_y_field_v(predicted_v)
+        right_side_p_prime = divergence_x_predicted_u + divergence_y_predicted_v
+        right_side_p_prime /= self.__delta.t
+        right_side_p_prime[0][0] = 0
+        right_side_p_prime = Boundaries.add_boundaries(right_side_p_prime, self.__boundaries,
+                                                       Field.p, Orientation.all)
         p_prime = self.__laplace_operator_p_prime.solve(right_side_p_prime)
+        return p_prime
 
-        # calculate the new fields
-        self.__p_matrix = p_prime + self.__p_matrix
-        self.__u_matrix = self.__u_matrix - \
-                          np.dot(self.__divergence_x(p_prime, Fields.P), self.__delta_t)
-        self.__v_matrix = self.__v_matrix - \
-                          np.dot(self.__divergence_y(p_prime, Fields.P), self.__delta_t)
+    def __calculate_new_fields(self, p_prime, predicted_u, predicted_v):
+        predicted_u = Boundaries.remove_side(predicted_u, Orientation.all)
+        predicted_v = Boundaries.remove_side(predicted_v, Orientation.all)
+        p_prime = Boundaries.remove_side(p_prime, Orientation.all)
+        self.__fields_matrix[Field.p] = self.__fields_matrix[Field.p] + p_prime
+        gradient_x_p_prime = self.__gradient_x_p_prime_for_u_field(p_prime)
+        gradient_x_p_prime = np.multiply(gradient_x_p_prime, self.__delta.t)
+        self.__fields_matrix[Field.u] = predicted_u - gradient_x_p_prime
+        gradient_y_p_prime = self.__gradient_y_p_prime_for_v_field(p_prime)
+        gradient_y_p_prime = np.multiply(gradient_y_p_prime, self.__delta.t)
+        self.__fields_matrix[Field.v] = predicted_v - gradient_y_p_prime
+
+    def __derivative_t_for_momentum_conservation_u(self):
+        divergence_t = self.__fields_matrix[Field.u]
+        divergence_t = np.multiply(divergence_t, -1 / self.__delta.t)
+        divergence_t = np.multiply(divergence_t.T, self.__delta.y).T
+        divergence_t = np.multiply(divergence_t, self.__delta.half_x_no_boundaries)
+        return divergence_t
+
+    def __derivative_t_for_momentum_conservation_v(self):
+        divergence_v_delta_t = self.__fields_matrix[Field.v]
+        divergence_v_delta_t = np.multiply(divergence_v_delta_t, -1 / self.__delta.t)
+        divergence_v_delta_t = np.multiply(divergence_v_delta_t.T, self.__delta.half_y_no_boundaries).T
+        divergence_v_delta_t = np.multiply(divergence_v_delta_t, self.__delta.x)
+        return divergence_v_delta_t
 
     def __non_linear_parameters_x(self):
         # P = plus  M = minus h = half
-        # find the matrices without the unneeded columns and rows
-        u_iP1_j = self.__u_matrix[2:, 1:-1]
-        u_i_j = self.__u_matrix[1:-1, 1:-1]
-        u_iM1_j = self.__u_matrix[:-2, 1:-1]
-        u_i_jP1 = self.__u_matrix[1:-1, 2:]
-        u_i_jM1 = self.__u_matrix[1:-1, :-2]
+        u_matrix = self.__fields_matrix[Field.u]
+        v_matrix = self.__fields_matrix[Field.v]
 
-        v_i_jP1 = self.__v_matrix[1:-1, 2:]
-        v_iM1_jP1 = self.__v_matrix[:-2, 2:]
-        v_i_j = self.__v_matrix[1:-1, 1:-1]
-        v_iM1_j = self.__v_matrix[:-2, 1:-1]
+        # find the matrices without the unneeded columns and rows
+        u_iP1_j = Boundaries.remove_side(u_matrix, Orientation.left)
+        u_iP1_j = Boundaries.add_boundaries(u_iP1_j, self.__boundaries, Field.u, Orientation.right)
+        u_i_j = u_matrix
+        u_iM1_j = Boundaries.remove_side(u_matrix, Orientation.right)
+        u_iM1_j = Boundaries.add_boundaries(u_iM1_j, self.__boundaries, Field.u, Orientation.left)
+        u_i_jP1 = Boundaries.remove_side(u_matrix, Orientation.bottom)
+        u_i_jM1 = Boundaries.remove_side(u_matrix, Orientation.top)
+
+        v_i_j = Boundaries.add_boundaries(v_matrix, self.__boundaries, Field.v, Orientation.top)
+        v_i_j = Boundaries.remove_side(v_i_j, Orientation.left)
+        v_iM1_j = Boundaries.add_boundaries(v_matrix, self.__boundaries, Field.v, Orientation.top)
+        v_iM1_j = Boundaries.remove_side(v_iM1_j, Orientation.right)
+        v_i_jM1 = Boundaries.add_boundaries(v_matrix, self.__boundaries, Field.v, Orientation.bottom)
+        v_i_jM1 = Boundaries.remove_side(v_i_jM1, Orientation.left)
+        v_iM1_jM1 = Boundaries.add_boundaries(v_matrix, self.__boundaries, Field.v, Orientation.bottom)
+        v_iM1_jM1 = Boundaries.remove_side(v_iM1_jM1, Orientation.right)
 
         # find matrices with half indexes
         u_iPh_j = (u_iP1_j + u_i_j) / 2
-        u_i_jPh = (u_i_jP1 + u_i_j) / 2
         u_iMh_j = (u_iM1_j + u_i_j) / 2
-        u_i_jMh = (u_i_jM1 + u_i_j) / 2
+        u_i_jh = (u_i_jP1 + u_i_jM1) / 2
+        u_i_jPh = Boundaries.add_boundaries(u_i_jh, self.__boundaries, Field.u, Orientation.top)
+        u_i_jMh = Boundaries.add_boundaries(u_i_jh, self.__boundaries, Field.u, Orientation.bottom)
 
-        v_iMh_jP1 = (v_i_jP1 + v_iM1_jP1) / 2
-        v_iMh_j = (v_i_j + v_iM1_j) / 2
+        v_iMh_jP1 = (v_i_j + v_iM1_j) / 2
+        v_iMh_jM1 = (v_i_jM1 + v_iM1_jM1) / 2
 
         # final expression
-        non_linear_parameters_x = np.dot((np.dot(u_iPh_j, u_iPh_j) - np.dot(u_iMh_j, u_iMh_j)),
-                                         self.__delta_y) + \
-                                  np.dot((np.dot(u_i_jPh, v_iMh_jP1) - np.dot(u_i_jMh, v_iMh_j)),
-                                         self.__delta_x)
+        delta_y_multiplication = np.multiply(u_iPh_j, u_iPh_j)
+        delta_y_multiplication -= np.multiply(u_iMh_j, u_iMh_j)
+        delta_x_multiplication = np.multiply(u_i_jPh, v_iMh_jP1)
+        delta_x_multiplication -= np.multiply(u_i_jMh, v_iMh_jM1)
+        non_linear_parameters_x = np.multiply(delta_y_multiplication.T, self.__delta.y).T + \
+                                  np.multiply(delta_x_multiplication, self.__delta.half_x_no_boundaries)
 
-        return self.__add_boundaries_all(non_linear_parameters_x, Fields.U)
+        return non_linear_parameters_x
 
     def __non_linear_parameters_y(self):
         # P = plus  M = minus h = half
-        # find the matrices without the unneeded columns and rows
-        u_iP1_jM1 = self.__u_matrix[2:, :-2]
-        u_iP1_j = self.__u_matrix[2:, 1:-1]
-        u_i_jM1 = self.__u_matrix[1:-1, :-2]
-        u_i_j = self.__u_matrix[1:-1, 1:-1]
+        u_matrix = self.__fields_matrix[Field.u]
+        v_matrix = self.__fields_matrix[Field.v]
 
-        v_i_j = self.__v_matrix[1:-1, 1:-1]
-        v_iP1_j = self.__v_matrix[2:, 1:-1]
-        v_i_jP1 = self.__v_matrix[1:-1, 2:]
-        v_iM1_j = self.__v_matrix[:-2, 1:-1]
-        v_i_jM1 = self.__v_matrix[1:-1, :-2]
+        # find the matrices without the unneeded columns and rows
+        u_iP1_jM1 = Boundaries.add_boundaries(u_matrix, self.__boundaries, Field.u, Orientation.right)
+        u_iP1_jM1 = Boundaries.remove_side(u_iP1_jM1, Orientation.top)
+        u_iP1_j = Boundaries.add_boundaries(u_matrix, self.__boundaries, Field.u, Orientation.right)
+        u_iP1_j = Boundaries.remove_side(u_iP1_j, Orientation.bottom)
+        u_i_jM1 = Boundaries.add_boundaries(u_matrix, self.__boundaries, Field.u, Orientation.left)
+        u_i_jM1 = Boundaries.remove_side(u_i_jM1, Orientation.top)
+        u_i_j = Boundaries.add_boundaries(u_matrix, self.__boundaries, Field.u, Orientation.left)
+        u_i_j = Boundaries.remove_side(u_i_j, Orientation.bottom)
+
+        v_i_jP1 = Boundaries.remove_side(v_matrix, Orientation.bottom)
+        v_i_jP1 = Boundaries.add_boundaries(v_i_jP1, self.__boundaries, Field.v, Orientation.top)
+        v_i_j = v_matrix
+        v_i_jM1 = Boundaries.remove_side(v_matrix, Orientation.top)
+        v_i_jM1 = Boundaries.add_boundaries(v_i_jM1, self.__boundaries, Field.v, Orientation.bottom)
+        v_iP1_j = Boundaries.remove_side(v_matrix, Orientation.left)
+        v_iM1_j = Boundaries.remove_side(v_matrix, Orientation.right)
 
         # find matrices with half indexes
         u_iP1_jMh = (u_iP1_jM1 + u_iP1_j) / 2
         u_i_jMh = (u_i_jM1 + u_i_j) / 2
 
-        v_iPh_j = (v_i_j + v_iP1_j) / 2
-        v_iMh_j = (v_i_j + v_iM1_j) / 2
         v_i_jPh = (v_i_j + v_i_jP1) / 2
         v_i_jMh = (v_i_j + v_i_jM1) / 2
+        v_middle_i_j = (v_iP1_j + v_iM1_j) / 2
+        v_iPh_j = Boundaries.add_boundaries(v_middle_i_j, self.__boundaries, Field.v, Orientation.right)
+        v_iMh_j = Boundaries.add_boundaries(v_middle_i_j, self.__boundaries, Field.v, Orientation.left)
 
         # final expression
-        non_linear_parameters_y = np.dot((np.dot(u_iP1_jMh, v_iPh_j) - np.dot(u_i_jMh, v_iMh_j)),
-                                         self.__delta_y) + \
-                                  np.dot((np.dot(v_i_jPh, v_i_jPh) - np.dot(v_i_jMh, v_i_jMh)),
-                                         self.__delta_x)
+        delta_x_multiplication = np.multiply(v_i_jPh, v_i_jPh)
+        delta_x_multiplication -= np.multiply(v_i_jMh, v_i_jMh)
+        delta_y_multiplication = np.multiply(u_iP1_jMh, v_iPh_j)
+        delta_y_multiplication -= np.multiply(u_i_jMh, v_iMh_j)
+        non_linear_parameters_y = np.multiply(delta_y_multiplication.T, self.__delta.half_y_no_boundaries).T + \
+                                  np.multiply(delta_x_multiplication, self.__delta.x)
 
-        return self.__add_boundaries_all(non_linear_parameters_y, Fields.V)
+        return non_linear_parameters_y
 
-    def __pressure_terms_x(self):
+    def __gradient_p_predicted_u(self):
         # P = plus
-        p_i_jP1 = self.__p_matrix[:, 2:-1]
-        p_i_j = self.__p_matrix[:, 1:-2]
-
-        results = p_i_jP1 - p_i_j
-        results = np.dot(results, self.__delta_y)
-        results = self.__add_boundaries_left(results, Fields.U)
-        results = self.__add_boundaries_right(results, Fields.U)
-        return results
-
-    def __pressure_terms_y(self):
-        # P = plus
-        p_iP1_j = self.__p_matrix[2:-1, :]
-        p_i_j = self.__p_matrix[1:-2, :]
-
+        p_iP1_j = Boundaries.remove_side(self.__fields_matrix[Field.p], Orientation.left)
+        p_i_j = Boundaries.remove_side(self.__fields_matrix[Field.p], Orientation.right)
         results = p_iP1_j - p_i_j
-        results = np.dot(results.transpose(), self.__delta_x).transpose()
-        results = self.__add_boundaries_left(results, Fields.V)
-        results = self.__add_boundaries_right(results, Fields.V)
+        results = np.multiply(results.T, self.__delta.y).T
         return results
 
-    def __divergence_x(self, matrix, field):
+    def __gradient_p_predicted_v(self):
+        # P = plus
+        p_i_jP1 = Boundaries.remove_side(self.__fields_matrix[Field.p], Orientation.bottom)
+        p_i_j = Boundaries.remove_side(self.__fields_matrix[Field.p], Orientation.top)
+        results = p_i_jP1 - p_i_j
+        results = np.multiply(results, self.__delta.x)
+        return results
+
+    def __gradient_x_p_prime_for_u_field(self, p_prime):
+        # P = plus
+        p_prime_iP1_j = Boundaries.remove_side(p_prime, Orientation.left)
+        p_prime_i_j = Boundaries.remove_side(p_prime, Orientation.right)
+        results = (p_prime_iP1_j - p_prime_i_j) / self.__delta.half_x_no_boundaries
+        return results
+
+    def __divergence_x_field_u(self, predicted_u):
+        # P = plus
+        predicted_u_iP1_j = Boundaries.add_boundaries(predicted_u, self.__boundaries, Field.u, Orientation.right)
+        predicted_u_i_j = Boundaries.add_boundaries(predicted_u, self.__boundaries, Field.u, Orientation.left)
+        results = (predicted_u_iP1_j - predicted_u_i_j) / self.__delta.x
+        return results
+
+    def __gradient_y_p_prime_for_v_field(self, p_prime):
+        # P = plus
+        p_prime_i_jP1 = Boundaries.remove_side(p_prime, Orientation.bottom)
+        p_prime_i_j = Boundaries.remove_side(p_prime, Orientation.top)
+        results = ((p_prime_i_jP1 - p_prime_i_j).T / self.__delta.half_y_no_boundaries).T
+        return results
+
+    def __divergence_y_field_v(self, predicted_v):
         # M = minus
-        matrix_iP1_j = matrix[:, 1:]
-        matrix_i_j = matrix[:, :-1]
-        results = (matrix_iP1_j - matrix_i_j) / self.__delta_x
-        results = self.__add_boundaries_left(results, field)
-        results = self.__add_boundaries_right(results, field)
+        predicted_v_i_jP1 = Boundaries.add_boundaries(predicted_v, self.__boundaries, Field.v, Orientation.top)
+        predicted_v_i_j = Boundaries.add_boundaries(predicted_v, self.__boundaries, Field.v, Orientation.bottom)
+        results = ((predicted_v_i_jP1 - predicted_v_i_j).T / self.__delta.y).T
         return results
-
-    def __divergence_y(self, matrix, field):
-        # M = minus
-        matrix_i_jP1 = matrix[1:, :]
-        matrix_i_j = matrix[:-1, :]
-        results = (matrix_i_jP1 - matrix_i_j) / self.__delta_x
-        results = self.__add_boundaries_top(results, field)
-        results = self.__add_boundaries_bottom(results, field)
-        return results
-
-    ###################################### Boundaries
-
-    def __add_boundaries_left(self, matrix, field):
-        if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
-            left_boundary = np.concatenate(([0], matrix[0], [0]), axis=0)
-        else:
-            left_boundary = np.concatenate(([0], self.__boundaries.get_left(field), [0]), axis=0)
-        return np.concatenate((np.array([left_boundary]).T, matrix), axis=1)
-
-    def __add_boundaries_right(self, matrix, field):
-        if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
-            right_boundary = np.concatenate(([0], matrix[-1], [0]), axis=0)
-        else:
-            right_boundary = np.concatenate(([0], self.__boundaries.get_right(field), [0]), axis=0)
-        return np.concatenate((matrix, np.array([right_boundary]).T), axis=1)
-
-    def __add_boundaries_top(self, matrix, field):
-        if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
-            top_boundary = np.concatenate(([0], matrix.T[0], [0]), axis=0)
-        else:
-            top_boundary = np.concatenate(([0], self.__boundaries.get_top(field), [0]), axis=0)
-        return np.concatenate(([top_boundary], matrix), axis=0)
-
-    def __add_boundaries_bottom(self, matrix, field):
-        if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
-            bottom_boundary = np.concatenate(([0], matrix.T[-1], [0]), axis=0)
-        else:
-            bottom_boundary = np.concatenate(([0], self.__boundaries.get_bottom(field), [0]), axis=0)
-        return np.concatenate((matrix, [bottom_boundary]), axis=0)
-
-    def __add_boundaries_all(self, matrix, field):
-        if field == Fields.P and self.__boundaries.boundary_conditions_type == BoundaryConditionsType.NUEMANN:
-            left_boundary = np.array([matrix[0]]).T
-            right_boundary = np.array([matrix[-1]]).T
-            top_boundary = np.concatenate(([0], matrix[0].T, [0]), axis=0)
-            bottom_boundary = np.concatenate(([0], matrix[-1].T, [0]), axis=0)
-        else:
-            left_boundary = np.array([self.__boundaries.get_left(field)]).T
-            right_boundary = np.array([self.__boundaries.get_right(field)]).T
-            top_boundary = np.concatenate(([0], self.__boundaries.get_top(field), [0]), axis=0)
-            bottom_boundary = np.concatenate(([0], self.__boundaries.get_bottom(field), [0]), axis=0)
-        top_boundary = np.array([top_boundary])
-        bottom_boundary = np.array([bottom_boundary])
-
-        matrix = np.concatenate((left_boundary, matrix, right_boundary), axis=1)
-        matrix = np.concatenate((top_boundary, matrix, bottom_boundary), axis=0)
-        return matrix
 
     ###################################### On Index Fields
 
     def __get_index_u_matrix(self):
-        left_boundary = np.array([self.__boundaries.get_left(Fields.U)]).T
-        right_boundary = np.array([self.__boundaries.get_right(Fields.U)]).T
-        index_u_matrix = np.concatenate((left_boundary, self.__u_matrix, right_boundary), axis=1)
-        index_u_matrix = (index_u_matrix[1:, :] + index_u_matrix[:-1, :])/2
-        index_u_matrix = self.__add_boundaries_top(index_u_matrix, Fields.U)
-        index_u_matrix = self.__add_boundaries_bottom(index_u_matrix, Fields.U)
+        left_boundary = np.array([self.__boundaries.get_boundary(Orientation.left, Field.u)]).T
+        right_boundary = np.array([self.__boundaries.get_boundary(Orientation.right, Field.u)]).T
+        index_u_matrix = np.concatenate((left_boundary, self.__fields_matrix[Field.u], right_boundary), axis=1)
+        index_u_matrix = (Boundaries.remove_side(index_u_matrix, Orientation.top) +
+                          Boundaries.remove_side(index_u_matrix, Orientation.bottom)) / 2
+        index_u_matrix = Boundaries.add_boundaries(index_u_matrix, self.__boundaries, Field.u,
+                                                   Orientation.bottom, with_edge_boundaries=True)
+        index_u_matrix = Boundaries.add_boundaries(index_u_matrix, self.__boundaries, Field.u,
+                                                   Orientation.top, with_edge_boundaries=True)
         return index_u_matrix
 
     def __get_index_v_matrix(self):
-        top_boundary = [self.__boundaries.get_top(Fields.V)]
-        bottom_boundary = [self.__boundaries.get_bottom(Fields.V)]
-        index_v_matrix = np.concatenate((top_boundary, self.__v_matrix, bottom_boundary), axis=0)
-        index_v_matrix = (index_v_matrix[:, 1:] + index_v_matrix[:, :-1])/2
-        index_v_matrix = self.__add_boundaries_left(index_v_matrix, Fields.V)
-        index_v_matrix = self.__add_boundaries_right(index_v_matrix, Fields.V)
+        bottom_boundary = [self.__boundaries.get_boundary(Orientation.bottom, Field.v)]
+        top_boundary = [self.__boundaries.get_boundary(Orientation.top, Field.v)]
+        index_v_matrix = np.concatenate((bottom_boundary, self.__fields_matrix[Field.v], top_boundary), axis=0)
+        index_v_matrix = (Boundaries.remove_side(index_v_matrix, Orientation.left) +
+                          Boundaries.remove_side(index_v_matrix, Orientation.right)) / 2
+        index_v_matrix = Boundaries.add_boundaries(index_v_matrix, self.__boundaries, Field.v,
+                                                   Orientation.left, with_edge_boundaries=True)
+        index_v_matrix = Boundaries.add_boundaries(index_v_matrix, self.__boundaries, Field.v,
+                                                   Orientation.right, with_edge_boundaries=True)
         return index_v_matrix
 
     ###################################### Data options
 
     def quiver(self):
-        x = (self.__delta_x[1:] + self.__delta_x[:-1])/2
-        y = (self.__delta_y[1:] + self.__delta_y[:-1])/2
-
-        x = np.concatenate(([self.__delta_x[0]/2], x, [self.__delta_x[-1]/2])).cumsum()
-        y = np.concatenate(([self.__delta_y[0]/2], y, [self.__delta_y[-1]/2])).cumsum()
+        x = np.append([0], self.__delta.x).cumsum()
+        y = np.append([0], self.__delta.y).cumsum()
         xx, yy = np.meshgrid(x, y)
 
         index_u_matrix = self.__get_index_u_matrix()
         index_v_matrix = self.__get_index_v_matrix()
         plt.quiver(xx, yy, index_u_matrix, index_v_matrix)
 
+    ###################################### Setters and Getters
 
+    @property
+    def boundary_conditions_type(self):
+        return self.__boundary_conditions_type
+
+    @boundary_conditions_type.setter
+    def boundary_conditions_type(self, boundary_conditions_type):
+        self.__boundary_conditions_type = boundary_conditions_type
+
+    @property
+    def fields_matrix(self):
+        return self.__fields_matrix
