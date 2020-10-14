@@ -47,18 +47,19 @@ if __name__ == "__main__":
         old_fields_matrix = domain.fields_matrix.copy()
         plt.cla()
         domain.next_step()
+        # domain.quiver()
+        # plt.pause(0.01)
         if step_counter % 10 == 0:
             delta_u = new_fields_matrix[Field.u] - old_fields_matrix[Field.u] / new_fields_matrix[Field.u]
             delta_v = new_fields_matrix[Field.v] - old_fields_matrix[Field.v] / new_fields_matrix[Field.v]
             delta_p = new_fields_matrix[Field.p] - old_fields_matrix[Field.p] / new_fields_matrix[Field.p]
-            middle_u = new_fields_matrix[Field.u][int((grid_size + 2)/2)]
-            middle_v = new_fields_matrix[Field.v].T[int((grid_size + 2)/2)].T
+            middle_u = new_fields_matrix[Field.u].T[int((grid_size + 2)/2)].T
+            middle_v = new_fields_matrix[Field.v][int((grid_size + 2)/2)]
             print("middle u = ", middle_u)
             print("middle v = ", middle_v)
             if is_in_steady_state():
                 print("In steady state")
                 break
-            domain.quiver()
         step_counter += 1
         time += C.DELTA_T
         print()
