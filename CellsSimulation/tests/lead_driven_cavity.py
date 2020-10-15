@@ -47,19 +47,23 @@ if __name__ == "__main__":
         old_fields_matrix = domain.fields_matrix.copy()
         plt.cla()
         domain.next_step()
-        # domain.quiver()
-        # plt.pause(0.01)
+        delta_u = (new_fields_matrix[Field.u] - old_fields_matrix[Field.u]) / new_fields_matrix[Field.u]
+        delta_v = (new_fields_matrix[Field.v] - old_fields_matrix[Field.v]) / new_fields_matrix[Field.v]
+        tmp_filed_matrix_p = new_fields_matrix[Field.p]
+        tmp_filed_matrix_p[0][0] = 1
+        delta_p = (new_fields_matrix[Field.p] - old_fields_matrix[Field.p]) / tmp_filed_matrix_p
+        print("delta_u max = ", delta_u.max(), "\tdelta_v max = ", delta_v.max(), "\tdelta_p max = ", delta_p.max())
         if step_counter % 10 == 0:
-            delta_u = new_fields_matrix[Field.u] - old_fields_matrix[Field.u] / new_fields_matrix[Field.u]
-            delta_v = new_fields_matrix[Field.v] - old_fields_matrix[Field.v] / new_fields_matrix[Field.v]
-            delta_p = new_fields_matrix[Field.p] - old_fields_matrix[Field.p] / new_fields_matrix[Field.p]
-            middle_u = new_fields_matrix[Field.u].T[int((grid_size + 2)/2)].T
-            middle_v = new_fields_matrix[Field.v][int((grid_size + 2)/2)]
-            print("middle u = ", middle_u)
-            print("middle v = ", middle_v)
+            domain.quiver()
+            plt.pause(0.1)
             if is_in_steady_state():
+                middle_u = new_fields_matrix[Field.u].T[int((grid_size + 2)/2)].T
+                middle_v = new_fields_matrix[Field.v][int((grid_size + 2)/2)]
+                print("middle u = ", middle_u)
+                print("middle v = ", middle_v)
                 print("In steady state")
                 break
         step_counter += 1
         time += C.DELTA_T
+        print()
         print()
