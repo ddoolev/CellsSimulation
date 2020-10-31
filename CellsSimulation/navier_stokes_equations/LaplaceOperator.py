@@ -1,7 +1,8 @@
 import numpy as np
 import scipy.sparse as sparse
 from scipy.sparse import linalg as sla
-from general_enums import Orientation, BoundaryConditionsType, Field
+from Boundaries import Orientation, BoundaryConditionsType
+from Fields import Field
 import numbers
 
 

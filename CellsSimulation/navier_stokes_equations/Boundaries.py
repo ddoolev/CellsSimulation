@@ -1,11 +1,19 @@
 import enum
-from general_enums import Field, Orientation
+from Fields import Field
 import numpy as np
 
 
 class BoundaryConditionsType(enum.Enum):
     dirichlet = enum.auto()
     neumann = enum.auto()
+
+
+class Orientation(enum.Enum):
+    left = enum.auto()
+    right = enum.auto()
+    bottom = enum.auto()
+    top = enum.auto()
+    all = enum.auto()
 
 
 class WarningsStrings:
@@ -146,4 +154,3 @@ class Boundaries:
         matrix = Boundaries.__add_left_boundary(matrix, boundaries, field, True)
         matrix = Boundaries.__add_right_boundary(matrix, boundaries, field, True)
         return matrix
-
