@@ -261,14 +261,14 @@ class NavierStokesEquations:
 
     def __derivative_t_for_momentum_conservation_u(self):
         divergence_t = self.__fields_matrix[Field.u]
-        divergence_t = np.multiply(divergence_t, -1 / self.__delta.t)
+        divergence_t = np.multiply(divergence_t, 1 / self.__delta.t)
         divergence_t = np.multiply(divergence_t.T, self.__delta.y).T
         divergence_t = np.multiply(divergence_t, self.__delta.half_x_no_boundaries)
         return divergence_t
 
     def __derivative_t_for_momentum_conservation_v(self):
         divergence_v_delta_t = self.__fields_matrix[Field.v]
-        divergence_v_delta_t = np.multiply(divergence_v_delta_t, -1 / self.__delta.t)
+        divergence_v_delta_t = np.multiply(divergence_v_delta_t, 1 / self.__delta.t)
         divergence_v_delta_t = np.multiply(divergence_v_delta_t.T, self.__delta.half_y_no_boundaries).T
         divergence_v_delta_t = np.multiply(divergence_v_delta_t, self.__delta.x)
         return divergence_v_delta_t

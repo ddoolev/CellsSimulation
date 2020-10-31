@@ -45,7 +45,7 @@ if __name__ == "__main__":
     while True:
         print("time = ", time)
         old_fields_matrix = domain.fields_matrix.copy()
-        plt.cla()
+        #plt.cla()
         domain.next_step()
         delta_u = (new_fields_matrix[Field.u] - old_fields_matrix[Field.u]) / new_fields_matrix[Field.u]
         delta_v = (new_fields_matrix[Field.v] - old_fields_matrix[Field.v]) / new_fields_matrix[Field.v]
@@ -54,14 +54,19 @@ if __name__ == "__main__":
         delta_p = (new_fields_matrix[Field.p] - old_fields_matrix[Field.p]) / tmp_filed_matrix_p
         print("delta_u max = ", delta_u.max(), "\tdelta_v max = ", delta_v.max(), "\tdelta_p max = ", delta_p.max())
         if step_counter % 10 == 0:
-            domain.quiver()
-            plt.pause(0.1)
+            plt.title(("time = ", str(time)))
+            #domain.quiver()
+            #plt.pause(0.1)
             if is_in_steady_state():
                 middle_u = new_fields_matrix[Field.u].T[int((grid_size + 2)/2)].T
                 middle_v = new_fields_matrix[Field.v][int((grid_size + 2)/2)]
                 print("middle u = ", middle_u)
                 print("middle v = ", middle_v)
                 print("In steady state")
+                print("Reynold number = ", C.Re)
+                plt.title(("time = ", str(time), "\tReynold number = ", C.Re))
+                domain.quiver()
+                plt.show()
                 break
         step_counter += 1
         time += C.DELTA_T
