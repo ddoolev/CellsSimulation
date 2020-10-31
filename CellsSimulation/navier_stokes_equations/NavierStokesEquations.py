@@ -59,7 +59,7 @@ class NavierStokesEquations:
 
         u_identity_matrix = np.multiply(u_identity_matrix, delta_x)
         u_identity_matrix = np.multiply(u_identity_matrix.T, delta_y).T
-        u_identity_matrix = np.multiply(u_identity_matrix, 1 / -C.DELTA_T)
+        u_identity_matrix = np.multiply(u_identity_matrix, 1 / -self.__delta_t)
         u_identity_matrix = sparse.spdiags(u_identity_matrix, [0],
                                            u_matrix_side_length, u_matrix_side_length, format='csr')
 
@@ -83,7 +83,7 @@ class NavierStokesEquations:
 
         v_identity_matrix = np.multiply(v_identity_matrix, delta_x)
         v_identity_matrix = np.multiply(v_identity_matrix, delta_y)
-        v_identity_matrix = np.multiply(v_identity_matrix, 1 / -C.DELTA_T)
+        v_identity_matrix = np.multiply(v_identity_matrix, 1 / -self.__delta_t)
         v_identity_matrix = sparse.spdiags(v_identity_matrix, [0],
                                            v_matrix_side_length, v_matrix_side_length, format='csr')
 
