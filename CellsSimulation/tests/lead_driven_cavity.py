@@ -1,8 +1,8 @@
 import numpy as np
-from Boundaries import Boundaries, Orientation
-from NavierStokesEquations import NavierStokesEquations, Information
+from Boundaries import Boundaries
+from NavierStokesEquations import NavierStokesEquations
 import matplotlib.pyplot as plt
-from Fields import Field
+from General_enums import Field, Orientation, Information
 from Grid import Grid2
 from Fields import Fields2
 import Constants as C
@@ -38,7 +38,7 @@ if __name__ == "__main__":
                              Orientation.top: boundary_top,
                              Orientation.bottom: boundary_bottom})
 
-    domain = NavierStokesEquations(fields_matrix, delta_xy, boundaries, delta_t, information=Information.check_divergent)
+    domain = NavierStokesEquations(fields_matrix, delta_xy, boundaries, delta_t, information=Information.all)
 
     new_fields = domain.fields
     time = 0
@@ -65,8 +65,8 @@ if __name__ == "__main__":
                 print("middle u = ", middle_u)
                 print("middle v = ", middle_v)
                 print("In steady state")
-                print("Reynold number = ", C.Re)
-                plt.title(("time = ", str(time), "\tReynold number = ", C.Re))
+                print("Reynold number = ", C.RE)
+                plt.title(("time = ", str(time), "\tReynold number = ", C.RE))
                 domain.quiver()
                 plt.show()
                 break
