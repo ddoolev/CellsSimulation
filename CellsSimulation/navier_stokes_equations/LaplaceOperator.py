@@ -18,8 +18,8 @@ class LaplaceOperator:
             self.__create_laplace_operators_matrix()
 
     def __create_laplace_operators_matrix(self):
-        self.__delta_grid_length()
-        num_of_points_in_matrix_side = self.__grid_length_x * self.__grid_length_y
+        self.__get_delta_grid_length()
+        matrix_side_size = self.__grid_length_x * self.__grid_length_y
         operators_matrix_diagonals = [[], [], [], [], []]
 
         boundary_block_top = self.__create_boundary_diagonal_block(E.Orientation.top)
@@ -30,7 +30,7 @@ class LaplaceOperator:
 
         # Iterate on the matrix blocks
         for i in range(self.__grid_length_x,
-                       num_of_points_in_matrix_side - self.__grid_length_x,
+                       matrix_side_size - self.__grid_length_x,
                        self.__grid_length_x):
             block = self.__create_laplace_operators_matrix_block(i)
             operators_matrix_diagonals = \
@@ -43,13 +43,17 @@ class LaplaceOperator:
 
         operators_matrix = sparse.spdiags(
             operators_matrix_diagonals, offsets,
-            num_of_points_in_matrix_side, num_of_points_in_matrix_side,
+            matrix_side_size, matrix_side_size,
             format='csc').T
         np.set_printoptions(threshold=1000)
         return operators_matrix
 
-    def __delta_grid_length(self):
-        if self.__field == Field.u:
+    @staticmethod
+    def __add_block_to_operators_matrix_diagonals(operators_matrix_diagonals, block):
+        return np.concatenate((operators_matrix_diagonals, block), axis=1)
+
+    def __get_delta_grid_length(self):
+        if self.__field == E.Field.u:
             self.__grid_length_x = len(self.__delta.x) + 1
             self.__grid_length_y = len(self.__delta.half_y) + 1
         elif self.__field == E.Field.v:
