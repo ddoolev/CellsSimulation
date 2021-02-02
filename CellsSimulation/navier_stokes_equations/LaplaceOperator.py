@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sparse
 from scipy.sparse import linalg as sla
-import General_enums as E
+import GeneralEnums as E
 import numbers
 
 
@@ -54,14 +54,14 @@ class LaplaceOperator:
 
     def __get_delta_grid_length(self):
         if self.__field == E.Field.u:
-            self.__grid_length_x = len(self.__delta.x) + 1
-            self.__grid_length_y = len(self.__delta.half_y) + 1
+            self.__grid_length_x = len(self.__delta.delta_x) + 1
+            self.__grid_length_y = len(self.__delta.delta_half_y) + 1
         elif self.__field == E.Field.v:
-            self.__grid_length_x = len(self.__delta.half_x) + 1
-            self.__grid_length_y = len(self.__delta.y) + 1
+            self.__grid_length_x = len(self.__delta.delta_half_x) + 1
+            self.__grid_length_y = len(self.__delta.delta_y) + 1
         else:  # self.__field == E.Field.p:
-            self.__grid_length_x = len(self.__delta.half_x) + 1
-            self.__grid_length_y = len(self.__delta.half_y) + 1
+            self.__grid_length_x = len(self.__delta.delta_half_x) + 1
+            self.__grid_length_y = len(self.__delta.delta_half_y) + 1
 
     def __create_laplace_operators_matrix_vector(self, i):
         # create the coefficients.
@@ -72,20 +72,20 @@ class LaplaceOperator:
         y_index_half_grid = y_index + 1
 
         if self.__field == E.Field.u:
-            coe_i_jM1 = self.__delta.half_x[x_index_half_grid] / self.__delta.half_y[y_index_half_grid - 1]
-            coe_iM1_j = self.__delta.y[y_index] / self.__delta.x[x_index - 1]
-            coe_iP1_j = self.__delta.y[y_index] / self.__delta.x[x_index]
-            coe_i_jP1 = self.__delta.half_x[x_index_half_grid] / self.__delta.half_y[y_index_half_grid]
+            coe_i_jM1 = self.__delta.delta_half_x[x_index_half_grid] / self.__delta.delta_half_y[y_index_half_grid - 1]
+            coe_iM1_j = self.__delta.delta_y[y_index] / self.__delta.delta_x[x_index - 1]
+            coe_iP1_j = self.__delta.delta_y[y_index] / self.__delta.delta_x[x_index]
+            coe_i_jP1 = self.__delta.delta_half_x[x_index_half_grid] / self.__delta.delta_half_y[y_index_half_grid]
         elif self.__field == E.Field.v:
-            coe_i_jM1 = self.__delta.x[x_index] / self.__delta.y[y_index - 1]
-            coe_iM1_j = self.__delta.half_y[y_index_half_grid] / self.__delta.half_x[x_index_half_grid - 1]
-            coe_iP1_j = self.__delta.half_y[y_index_half_grid] / self.__delta.half_x[x_index_half_grid]
-            coe_i_jP1 = self.__delta.x[x_index] / self.__delta.y[y_index]
+            coe_i_jM1 = self.__delta.delta_x[x_index] / self.__delta.delta_y[y_index - 1]
+            coe_iM1_j = self.__delta.delta_half_y[y_index_half_grid] / self.__delta.delta_half_x[x_index_half_grid - 1]
+            coe_iP1_j = self.__delta.delta_half_y[y_index_half_grid] / self.__delta.delta_half_x[x_index_half_grid]
+            coe_i_jP1 = self.__delta.delta_x[x_index] / self.__delta.delta_y[y_index]
         else:  # self.__field == E.Field.p
-            coe_i_jM1 = 1 / self.__delta.half_y[y_index_half_grid - 1] ** 2
-            coe_iM1_j = 1 / self.__delta.half_x[x_index_half_grid - 1] ** 2
-            coe_iP1_j = 1 / self.__delta.half_x[x_index_half_grid] ** 2
-            coe_i_jP1 = 1 / self.__delta.half_y[y_index_half_grid] ** 2
+            coe_i_jM1 = 1 / self.__delta.delta_half_y[y_index_half_grid - 1] ** 2
+            coe_iM1_j = 1 / self.__delta.delta_half_x[x_index_half_grid - 1] ** 2
+            coe_iP1_j = 1 / self.__delta.delta_half_x[x_index_half_grid] ** 2
+            coe_i_jP1 = 1 / self.__delta.delta_half_y[y_index_half_grid] ** 2
 
         coe_i_j = -(coe_i_jM1 + coe_iM1_j + coe_iP1_j + coe_i_jP1)
 

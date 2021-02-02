@@ -3,7 +3,7 @@ from LaplaceOperator import LaplaceOperator
 import Constants as C
 import scipy.sparse as sparse
 import matplotlib.pyplot as plt
-import General_enums as E
+import GeneralEnums as E
 from Boundaries import Boundaries
 
 
@@ -39,14 +39,14 @@ class NavierStokesEquations:
         self.__laplace_operator_predicted_u.multiply_operators_matrix(1 / C.RE)
 
         # add delta_x*delta_y/delta_t
-        u_matrix_side_length = (len(self.__grid.x) + 1) * (len(self.__grid.half_y) + 1)
+        u_matrix_side_length = (len(self.__grid.delta_x) + 1) * (len(self.__grid.delta_half_y) + 1)
         u_identity_matrix = np.full(u_matrix_side_length, 1)
 
-        delta_x = Boundaries.remove_side(self.__grid.half_x, E.Orientation.all)
+        delta_x = Boundaries.remove_side(self.__grid.delta_half_x, E.Orientation.all)
         delta_x = np.concatenate(([0], delta_x, [0]))
-        delta_x = np.tile(delta_x, (len(self.__grid.y) + 2))
-        delta_y = np.concatenate(([0], self.__grid.y, [0]))
-        delta_y = np.repeat(delta_y, len(self.__grid.half_x))
+        delta_x = np.tile(delta_x, (len(self.__grid.delta_y) + 2))
+        delta_y = np.concatenate(([0], self.__grid.delta_y, [0]))
+        delta_y = np.repeat(delta_y, len(self.__grid.delta_half_x))
 
         u_identity_matrix = np.multiply(u_identity_matrix, delta_x)
         u_identity_matrix = np.multiply(u_identity_matrix.T, delta_y).T
@@ -63,14 +63,14 @@ class NavierStokesEquations:
         self.__laplace_operator_predicted_v.multiply_operators_matrix(1 / C.RE)
 
         # add delta_x*delta_y/delta_t
-        v_matrix_side_length = (len(self.__grid.x) + 1) * (len(self.__grid.half_y) + 1)
+        v_matrix_side_length = (len(self.__grid.delta_x) + 1) * (len(self.__grid.delta_half_y) + 1)
         v_identity_matrix = np.full(v_matrix_side_length, 1)
 
-        delta_x = np.concatenate(([0], self.__grid.x, [0]))
-        delta_x = np.tile(delta_x, len(self.__grid.half_x))
-        delta_y = Boundaries.remove_side(self.__grid.half_y, E.Orientation.all)
+        delta_x = np.concatenate(([0], self.__grid.delta_x, [0]))
+        delta_x = np.tile(delta_x, len(self.__grid.delta_half_x))
+        delta_y = Boundaries.remove_side(self.__grid.delta_half_y, E.Orientation.all)
         delta_y = np.concatenate(([0], delta_y, [0]))
-        delta_y = np.repeat(delta_y, (len(self.__grid.x) + 2))
+        delta_y = np.repeat(delta_y, (len(self.__grid.delta_x) + 2))
 
         v_identity_matrix = np.multiply(v_identity_matrix, delta_x)
         v_identity_matrix = np.multiply(v_identity_matrix, delta_y)
@@ -142,8 +142,8 @@ class NavierStokesEquations:
 
         u_on_p_grid = (u_i_j + u_iP1_j) / 2
         v_on_p_grid = (v_i_j + v_i_jP1) / 2
-        derivative_u_of_x = np.multiply(u_iP1_j - u_i_j, 1 / self.__grid.x)
-        derivative_v_of_y = np.multiply((v_i_jP1 - v_i_j).T, 1 / self.__grid.y).T
+        derivative_u_of_x = np.multiply(u_iP1_j - u_i_j, 1 / self.__grid.delta_x)
+        derivative_v_of_y = np.multiply((v_i_jP1 - v_i_j).T, 1 / self.__grid.delta_y).T
 
         # set derivatives u of y and v of x
         u_i_j = Boundaries.add_boundaries(u_i_j, self.__boundaries, E.Field.u, E.Orientation.right)
@@ -153,7 +153,7 @@ class NavierStokesEquations:
         v_iP1_j = Boundaries.remove_side(v_i_j, E.Orientation.left)
         v_i_j = Boundaries.remove_side(v_i_j, E.Orientation.right)
 
-        derivative_u_of_y = np.multiply((u_i_jP1 - u_i_j).T, 1 / self.__grid.half_y_no_boundaries).T
+        derivative_u_of_y = np.multiply((u_i_jP1 - u_i_j).T, 1 / self.__grid.delta_half_y_no_boundaries).T
         derivative_u_of_y = Boundaries.add_boundaries(derivative_u_of_y, self.__boundaries, E.Field.u, E.Orientation.top,
                                                       with_edge_boundaries=True)
         derivative_u_of_y = Boundaries.add_boundaries(derivative_u_of_y, self.__boundaries, E.Field.u, E.Orientation.bottom,
@@ -176,7 +176,7 @@ class NavierStokesEquations:
                              + derivative_u_of_y_bottom_right_corner
                              + derivative_u_of_y_bottom_left_corner) / 4
 
-        derivative_v_of_x = np.multiply(v_iP1_j - v_i_j, 1 / self.__grid.half_x_no_boundaries)
+        derivative_v_of_x = np.multiply(v_iP1_j - v_i_j, 1 / self.__grid.delta_half_x_no_boundaries)
         derivative_v_of_x = Boundaries.add_boundaries(derivative_v_of_x, self.__boundaries, E.Field.v, E.Orientation.left,
                                                       with_edge_boundaries=True)
         derivative_v_of_x = Boundaries.add_boundaries(derivative_v_of_x, self.__boundaries, E.Field.v, E.Orientation.right,
@@ -254,15 +254,15 @@ class NavierStokesEquations:
     def __derivative_t_for_momentum_conservation_u(self):
         divergence_t = self.__fields.u
         divergence_t = np.multiply(divergence_t, 1 / self.__delta_t)
-        divergence_t = np.multiply(divergence_t.T, self.__grid.y).T
-        divergence_t = np.multiply(divergence_t, self.__grid.half_x_no_boundaries)
+        divergence_t = np.multiply(divergence_t.T, self.__grid.delta_y).T
+        divergence_t = np.multiply(divergence_t, self.__grid.delta_half_x_no_boundaries)
         return divergence_t
 
     def __derivative_t_for_momentum_conservation_v(self):
         divergence_v_delta_t = self.__fields.v
         divergence_v_delta_t = np.multiply(divergence_v_delta_t, 1 / self.__delta_t)
-        divergence_v_delta_t = np.multiply(divergence_v_delta_t.T, self.__grid.half_y_no_boundaries).T
-        divergence_v_delta_t = np.multiply(divergence_v_delta_t, self.__grid.x)
+        divergence_v_delta_t = np.multiply(divergence_v_delta_t.T, self.__grid.delta_half_y_no_boundaries).T
+        divergence_v_delta_t = np.multiply(divergence_v_delta_t, self.__grid.delta_x)
         return divergence_v_delta_t
 
     def __non_linear_parameters_x(self):
@@ -303,8 +303,8 @@ class NavierStokesEquations:
         delta_y_multiplication -= np.multiply(u_iMh_j, u_iMh_j)
         delta_x_multiplication = np.multiply(u_i_jPh, v_iMh_jP1)
         delta_x_multiplication -= np.multiply(u_i_jMh, v_iMh_jM1)
-        non_linear_parameters_x = np.multiply(delta_y_multiplication.T, self.__grid.y).T + \
-                                  np.multiply(delta_x_multiplication, self.__grid.half_x_no_boundaries)
+        non_linear_parameters_x = np.multiply(delta_y_multiplication.T, self.__grid.delta_y).T + \
+                                  np.multiply(delta_x_multiplication, self.__grid.delta_half_x_no_boundaries)
 
         return non_linear_parameters_x
 
@@ -346,8 +346,8 @@ class NavierStokesEquations:
         delta_x_multiplication -= np.multiply(v_i_jMh, v_i_jMh)
         delta_y_multiplication = np.multiply(u_iP1_jMh, v_iPh_j)
         delta_y_multiplication -= np.multiply(u_i_jMh, v_iMh_j)
-        non_linear_parameters_y = np.multiply(delta_y_multiplication.T, self.__grid.half_y_no_boundaries).T + \
-                                  np.multiply(delta_x_multiplication, self.__grid.x)
+        non_linear_parameters_y = np.multiply(delta_y_multiplication.T, self.__grid.delta_half_y_no_boundaries).T + \
+                                  np.multiply(delta_x_multiplication, self.__grid.delta_x)
 
         return non_linear_parameters_y
 
@@ -356,7 +356,7 @@ class NavierStokesEquations:
         p_iP1_j = Boundaries.remove_side(self.__fields.p, E.Orientation.left)
         p_i_j = Boundaries.remove_side(self.__fields.p, E.Orientation.right)
         results = p_iP1_j - p_i_j
-        results = np.multiply(results.T, self.__grid.y).T
+        results = np.multiply(results.T, self.__grid.delta_y).T
         return results
 
     def __gradient_p_predicted_v(self):
@@ -364,35 +364,35 @@ class NavierStokesEquations:
         p_i_jP1 = Boundaries.remove_side(self.__fields.p, E.Orientation.bottom)
         p_i_j = Boundaries.remove_side(self.__fields.p, E.Orientation.top)
         results = p_i_jP1 - p_i_j
-        results = np.multiply(results, self.__grid.x)
+        results = np.multiply(results, self.__grid.delta_x)
         return results
 
     def __gradient_x_p_prime_for_u_field(self, p_prime):
         # P = plus
         p_prime_iP1_j = Boundaries.remove_side(p_prime, E.Orientation.left)
         p_prime_i_j = Boundaries.remove_side(p_prime, E.Orientation.right)
-        results = (p_prime_iP1_j - p_prime_i_j) / self.__grid.half_x_no_boundaries
+        results = (p_prime_iP1_j - p_prime_i_j) / self.__grid.delta_half_x_no_boundaries
         return results
 
     def __divergence_x_field_u(self, predicted_u):
         # P = plus
         predicted_u_iP1_j = Boundaries.add_boundaries(predicted_u, self.__boundaries, E.Field.u, E.Orientation.right)
         predicted_u_i_j = Boundaries.add_boundaries(predicted_u, self.__boundaries, E.Field.u, E.Orientation.left)
-        results = (predicted_u_iP1_j - predicted_u_i_j) / self.__grid.x
+        results = (predicted_u_iP1_j - predicted_u_i_j) / self.__grid.delta_x
         return results
 
     def __gradient_y_p_prime_for_v_field(self, p_prime):
         # P = plus
         p_prime_i_jP1 = Boundaries.remove_side(p_prime, E.Orientation.bottom)
         p_prime_i_j = Boundaries.remove_side(p_prime, E.Orientation.top)
-        results = ((p_prime_i_jP1 - p_prime_i_j).T / self.__grid.half_y_no_boundaries).T
+        results = ((p_prime_i_jP1 - p_prime_i_j).T / self.__grid.delta_half_y_no_boundaries).T
         return results
 
     def __divergence_y_field_v(self, predicted_v):
         # M = minus
         predicted_v_i_jP1 = Boundaries.add_boundaries(predicted_v, self.__boundaries, E.Field.v, E.Orientation.top)
         predicted_v_i_j = Boundaries.add_boundaries(predicted_v, self.__boundaries, E.Field.v, E.Orientation.bottom)
-        results = ((predicted_v_i_jP1 - predicted_v_i_j).T / self.__grid.y).T
+        results = ((predicted_v_i_jP1 - predicted_v_i_j).T / self.__grid.delta_y).T
         return results
 
     ###################################### On Index Fields
@@ -424,8 +424,8 @@ class NavierStokesEquations:
     ###################################### Data options
 
     def quiver(self):
-        x = np.append([0], self.__grid.x).cumsum()
-        y = np.append([0], self.__grid.y).cumsum()
+        x = np.append([0], self.__grid.delta_x).cumsum()
+        y = np.append([0], self.__grid.delta_y).cumsum()
         xx, yy = np.meshgrid(x, y)
 
         index_u_matrix = self.__get_index_u_matrix()

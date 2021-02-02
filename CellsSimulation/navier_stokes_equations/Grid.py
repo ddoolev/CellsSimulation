@@ -1,5 +1,6 @@
 import numpy as np
-import General_enums as E
+import GeneralEnums as E
+
 
 class _Grid:
 
@@ -35,10 +36,13 @@ class _Grid:
 class Grid2(_Grid):
 
     def __init__(self, delta_x, delta_y):
-        self._x = delta_x
-        self._y = delta_y
-        self._half_x = self._create_half_grid(delta_x)
-        self._half_y = self._create_half_grid(delta_y)
+        self._delta_x = delta_x
+        self._delta_y = delta_y
+        self._delta_half_x = self._create_half_grid(delta_x)
+        self._delta_half_y = self._create_half_grid(delta_y)
+
+        self._x = np.concatenate(([0], np.cumsum(delta_x)))
+        self._y = np.concatenate(([0], np.cumsum(delta_x)))
 
     @property
     def x(self):
@@ -49,49 +53,63 @@ class Grid2(_Grid):
         return self._y
 
     @property
-    def half_x(self):
-        return self._half_x
+    def delta_x(self):
+        return self._delta_x
 
     @property
-    def half_y(self):
-        return self._half_y
+    def delta_y(self):
+        return self._delta_y
 
     @property
-    def x_no_boundaries(self):
-        return Grid2._remove_boundaries(self._x, E.Orientation.all)
+    def delta_half_x(self):
+        return self._delta_half_x
 
     @property
-    def y_no_boundaries(self):
-        return Grid2._remove_boundaries(self._y, E.Orientation.all)
+    def delta_half_y(self):
+        return self._delta_half_y
 
     @property
-    def half_x_no_boundaries(self):
-        return Grid2._remove_boundaries(self._half_x, E.Orientation.all)
+    def delta_x_no_boundaries(self):
+        return Grid2._remove_boundaries(self._delta_x, E.Orientation.all)
 
     @property
-    def half_y_no_boundaries(self):
-        return Grid2._remove_boundaries(self._half_y, E.Orientation.all)
+    def delta_y_no_boundaries(self):
+        return Grid2._remove_boundaries(self._delta_y, E.Orientation.all)
+
+    @property
+    def delta_half_x_no_boundaries(self):
+        return Grid2._remove_boundaries(self._delta_half_x, E.Orientation.all)
+
+    @property
+    def delta_half_y_no_boundaries(self):
+        return Grid2._remove_boundaries(self._delta_half_y, E.Orientation.all)
 
 
 class Grid3(Grid2):
 
     def __init__(self, delta_x, delta_y, delta_z):
         super().__init__(delta_x, delta_y)
-        self._z = delta_z
-        self._half_z = Grid3._create_half_grid(delta_z)
+        self._delta_z = delta_z
+        self._delta_half_z = Grid3._create_half_grid(delta_z)
+
+        self._z = np.concatenate(([0], np.cumsum(delta_z)))
 
     @property
     def z(self):
         return self._z
 
     @property
-    def half_z(self):
-        return self._half_z
+    def delta_z(self):
+        return self._delta_z
 
     @property
-    def z_no_boundaries(self):
-        return Grid2._remove_boundaries(self._z, E.Orientation.all)
+    def delta_half_z(self):
+        return self._delta_half_z
 
     @property
-    def half_z_no_boundaries(self):
-        return Grid2._remove_boundaries(self._half_z, E.Orientation.all)
+    def delta_z_no_boundaries(self):
+        return Grid2._remove_boundaries(self._delta_z, E.Orientation.all)
+
+    @property
+    def delta_half_z_no_boundaries(self):
+        return Grid2._remove_boundaries(self._delta_half_z, E.Orientation.all)

@@ -2,7 +2,7 @@ import numpy as np
 from Boundaries import Boundaries
 from NavierStokesEquations import NavierStokesEquations
 import matplotlib.pyplot as plt
-from General_enums import Field, Orientation, Information
+from GeneralEnums import Field, Orientation, Information
 from Grid import Grid2
 from Fields import Fields2
 import Constants as C
