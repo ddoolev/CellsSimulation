@@ -1,22 +1,21 @@
 import numpy as np
-from Boundaries import Orientation
-
+import General_enums as E
 
 class _Grid:
 
     @staticmethod
     def _create_half_grid(delta):
-        delta_half_grid = (_Grid._remove_boundaries(delta, Orientation.left) +
-                           _Grid._remove_boundaries(delta, Orientation.right)) / 2
+        delta_half_grid = (_Grid._remove_boundaries(delta, E.Orientation.left) +
+                           _Grid._remove_boundaries(delta, E.Orientation.right)) / 2
         delta_half_grid = np.concatenate(([delta[0] / 2], delta_half_grid, [delta[-1] / 2]))
         return delta_half_grid
 
     @staticmethod
     def _remove_boundaries(array, orientation):
         remove_boundary = {
-            Orientation.left: _Grid._remove_boundaries_left(array),
-            Orientation.right: _Grid._remove_boundaries_right(array),
-            Orientation.all: _Grid._remove_boundaries_all(array)
+            E.Orientation.left: _Grid._remove_boundaries_left(array),
+            E.Orientation.right: _Grid._remove_boundaries_right(array),
+            E.Orientation.all: _Grid._remove_boundaries_all(array)
         }
         return remove_boundary.get(orientation)
 
@@ -59,19 +58,19 @@ class Grid2(_Grid):
 
     @property
     def x_no_boundaries(self):
-        return Grid2._remove_boundaries(self._x, Orientation.all)
+        return Grid2._remove_boundaries(self._x, E.Orientation.all)
 
     @property
     def y_no_boundaries(self):
-        return Grid2._remove_boundaries(self._y, Orientation.all)
+        return Grid2._remove_boundaries(self._y, E.Orientation.all)
 
     @property
     def half_x_no_boundaries(self):
-        return Grid2._remove_boundaries(self._half_x, Orientation.all)
+        return Grid2._remove_boundaries(self._half_x, E.Orientation.all)
 
     @property
     def half_y_no_boundaries(self):
-        return Grid2._remove_boundaries(self._half_y, Orientation.all)
+        return Grid2._remove_boundaries(self._half_y, E.Orientation.all)
 
 
 class Grid3(Grid2):
@@ -91,8 +90,8 @@ class Grid3(Grid2):
 
     @property
     def z_no_boundaries(self):
-        return Grid2._remove_boundaries(self._z, Orientation.all)
+        return Grid2._remove_boundaries(self._z, E.Orientation.all)
 
     @property
     def half_z_no_boundaries(self):
-        return Grid2._remove_boundaries(self._half_z, Orientation.all)
+        return Grid2._remove_boundaries(self._half_z, E.Orientation.all)

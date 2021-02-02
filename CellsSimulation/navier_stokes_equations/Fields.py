@@ -1,13 +1,3 @@
-import enum
-
-
-class Field(enum.Enum):
-    u = enum.auto()
-    v = enum.auto()
-    p = enum.auto()
-    all = enum.auto()
-
-
 class Fields2:
 
     def __init__(self, field_v, field_u, field_p):

@@ -1,8 +1,7 @@
 import numpy as np
 import scipy.sparse as sparse
 from scipy.sparse import linalg as sla
-from Boundaries import Orientation, BoundaryConditionsType
-from Fields import Field
+import General_enums as E
 import numbers
 
 
@@ -13,7 +12,7 @@ class LaplaceOperator:
         self.__boundary_condition_type = boundary_condition_type
         self.__operators_matrix_updated_flag = True
         self.__field = field
-        if field == Field.all:
+        if field == E.Field.all:
             raise TypeError("Field can't be of type 'all'")
         self.__operators_matrix = \
             self.__create_laplace_operators_matrix()
@@ -23,8 +22,8 @@ class LaplaceOperator:
         num_of_points_in_matrix_side = self.__grid_length_x * self.__grid_length_y
         operators_matrix_diagonals = [[], [], [], [], []]
 
-        boundary_block_top = self.__create_boundary_diagonal_block(Orientation.top)
-        boundary_block_bottom = self.__create_boundary_diagonal_block(Orientation.bottom)
+        boundary_block_top = self.__create_boundary_diagonal_block(E.Orientation.top)
+        boundary_block_bottom = self.__create_boundary_diagonal_block(E.Orientation.bottom)
 
         operators_matrix_diagonals = \
             np.concatenate((boundary_block_top, operators_matrix_diagonals), axis=1)
@@ -53,10 +52,10 @@ class LaplaceOperator:
         if self.__field == Field.u:
             self.__grid_length_x = len(self.__delta.x) + 1
             self.__grid_length_y = len(self.__delta.half_y) + 1
-        elif self.__field == Field.v:
+        elif self.__field == E.Field.v:
             self.__grid_length_x = len(self.__delta.half_x) + 1
             self.__grid_length_y = len(self.__delta.y) + 1
-        else:  # self.__field == Field.p:
+        else:  # self.__field == E.Field.p:
             self.__grid_length_x = len(self.__delta.half_x) + 1
             self.__grid_length_y = len(self.__delta.half_y) + 1
 
@@ -68,17 +67,17 @@ class LaplaceOperator:
         x_index_half_grid = x_index + 1
         y_index_half_grid = y_index + 1
 
-        if self.__field == Field.u:
+        if self.__field == E.Field.u:
             coe_i_jM1 = self.__delta.half_x[x_index_half_grid] / self.__delta.half_y[y_index_half_grid - 1]
             coe_iM1_j = self.__delta.y[y_index] / self.__delta.x[x_index - 1]
             coe_iP1_j = self.__delta.y[y_index] / self.__delta.x[x_index]
             coe_i_jP1 = self.__delta.half_x[x_index_half_grid] / self.__delta.half_y[y_index_half_grid]
-        elif self.__field == Field.v:
+        elif self.__field == E.Field.v:
             coe_i_jM1 = self.__delta.x[x_index] / self.__delta.y[y_index - 1]
             coe_iM1_j = self.__delta.half_y[y_index_half_grid] / self.__delta.half_x[x_index_half_grid - 1]
             coe_iP1_j = self.__delta.half_y[y_index_half_grid] / self.__delta.half_x[x_index_half_grid]
             coe_i_jP1 = self.__delta.x[x_index] / self.__delta.y[y_index]
-        else:  # self.__field == Field.p
+        else:  # self.__field == E.Field.p
             coe_i_jM1 = 1 / self.__delta.half_y[y_index_half_grid - 1] ** 2
             coe_iM1_j = 1 / self.__delta.half_x[x_index_half_grid - 1] ** 2
             coe_iP1_j = 1 / self.__delta.half_x[x_index_half_grid] ** 2
@@ -92,8 +91,8 @@ class LaplaceOperator:
 
     def __create_laplace_operators_matrix_block(self, i):
         block = [[], [], [], [], []]
-        boundary_vector_left = self.__create_boundary_vector_diagonal(Orientation.left)
-        boundary_vector_right = self.__create_boundary_vector_diagonal(Orientation.right)
+        boundary_vector_left = self.__create_boundary_vector_diagonal(E.Orientation.left)
+        boundary_vector_right = self.__create_boundary_vector_diagonal(E.Orientation.right)
 
         # boundary value
         block = np.concatenate((boundary_vector_left, block ), axis=1)
@@ -112,10 +111,10 @@ class LaplaceOperator:
     ###################################### Create Boundaries block and vector
 
     def __create_boundary_diagonal_block(self, orientation):
-        if orientation not in [Orientation.top, Orientation.bottom]:
+        if orientation not in [E.Orientation.top, E.Orientation.bottom]:
             raise TypeError("Orientation must be top or bottom")
 
-        if self.__boundary_condition_type == BoundaryConditionsType.dirichlet:
+        if self.__boundary_condition_type == E.BoundaryConditionsType.dirichlet:
             return self.__create_boundary_block_diagonal_dirichlet()
         else:
             return self.__create_boundary_block_diagonal_neumann(orientation)
@@ -153,10 +152,10 @@ class LaplaceOperator:
         return vector
 
     def __create_boundary_vector_diagonal(self, orientation):
-        if orientation not in [Orientation.top, Orientation.bottom, Orientation.left, Orientation.right]:
+        if orientation not in [E.Orientation.top, E.Orientation.bottom, E.Orientation.left, E.Orientation.right]:
             raise TypeError("Orientation must be one of top/bottom/left/right")
 
-        if self.__boundary_condition_type == BoundaryConditionsType.dirichlet:
+        if self.__boundary_condition_type == E.BoundaryConditionsType.dirichlet:
             return LaplaceOperator.__create_boundary_vector_diagonal_dirichlet()
         else:
             return LaplaceOperator.__create_boundary_vector_diagonal_neumann(orientation)
@@ -167,11 +166,11 @@ class LaplaceOperator:
 
     @staticmethod
     def __create_boundary_vector_diagonal_neumann(orientation):
-        if orientation == Orientation.left:
+        if orientation == E.Orientation.left:
             return [[0], [0], [1], [-1], [0]]
-        elif orientation == Orientation.right:
+        elif orientation == E.Orientation.right:
             return [[0], [-1], [1], [0], [0]]
-        elif orientation == Orientation.top:
+        elif orientation == E.Orientation.top:
             return [[0], [0], [1], [0], [-1]]
         else:
             return [[-1], [0], [1], [0], [0]]
@@ -191,7 +190,7 @@ class LaplaceOperator:
     def __check_operators_matrix_update(self):
         if self.__operators_matrix_updated_flag:
             self.__redo_operators_matrix_boundaries()
-            if self.__boundary_condition_type == BoundaryConditionsType.neumann:
+            if self.__boundary_condition_type == E.BoundaryConditionsType.neumann:
                 self.__create_corner_dirichlet_for_neumann()
             self.__lu_operator = sla.splu(self.__operators_matrix)
             self.__operators_matrix_updated_flag = False
@@ -199,17 +198,17 @@ class LaplaceOperator:
     def __redo_operators_matrix_boundaries(self):
         num_of_points_in_matrix = self.__grid_length_x * self.__grid_length_y
         for i in range(self.__grid_length_x):
-            self.__operators_matrix[i] = self.__create_boundary_vector(Orientation.top, i)
+            self.__operators_matrix[i] = self.__create_boundary_vector(E.Orientation.top, i)
         for i in range(self.__grid_length_x,
                        num_of_points_in_matrix - self.__grid_length_x,
                        self.__grid_length_x):
-            self.__operators_matrix[i] = self.__create_boundary_vector(Orientation.left, i)
+            self.__operators_matrix[i] = self.__create_boundary_vector(E.Orientation.left, i)
             self.__operators_matrix[i + self.__grid_length_x - 1] = \
-                self.__create_boundary_vector(Orientation.right, i + self.__grid_length_x - 1)
+                self.__create_boundary_vector(E.Orientation.right, i + self.__grid_length_x - 1)
 
         for i in range(self.__grid_length_x):
             self.__operators_matrix[num_of_points_in_matrix - i - 1] = \
-                self.__create_boundary_vector(Orientation.bottom, num_of_points_in_matrix - i - 1)
+                self.__create_boundary_vector(E.Orientation.bottom, num_of_points_in_matrix - i - 1)
 
     ###################################### operations on operators matrix
 
