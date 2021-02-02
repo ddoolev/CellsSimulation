@@ -1,6 +1,6 @@
 
 import numpy as np
-import General_enums as E
+import GeneralEnums as E
 
 
 class WarningsStrings:

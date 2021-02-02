@@ -1,5 +1,5 @@
 from matplotlib import pyplot as plt
-import General_enums as E
+import GeneralEnums as E
 import numpy as np
 from NavierStokesEquations import NavierStokesEquations
 from matplotlib import animation
