@@ -42,7 +42,9 @@ class Grid2(_Grid):
         self._delta_half_y = self._create_half_grid(delta_y)
 
         self._x = np.concatenate(([0], np.cumsum(delta_x)))
+        self._half_x = np.concatenate(([0], np.cumsum(self._delta_half_x)))
         self._y = np.concatenate(([0], np.cumsum(delta_x)))
+        self._half_y = np.concatenate(([0], np.cumsum(self._delta_half_y)))
 
     @property
     def x(self):
@@ -51,6 +53,14 @@ class Grid2(_Grid):
     @property
     def y(self):
         return self._y
+
+    @property
+    def half_x(self):
+        return self._half_x
+
+    @property
+    def half_y(self):
+        return self._half_y
 
     @property
     def delta_x(self):
